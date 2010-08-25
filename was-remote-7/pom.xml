@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<!-- Parent -->
+	<parent>
+		<groupId>org.jboss.arquillian</groupId>
+		<artifactId>arquillian-build</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+		<relativePath>../../build/pom.xml</relativePath>
+	</parent>
+
+	<!-- Model Version -->
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- Artifact Configuration -->
+	<groupId>org.jboss.arquillian.container</groupId>
+	<artifactId>arquillian-websphere-remote-7</artifactId>
+	<name>Arquillian Container WebSphere Remote 7.x</name>
+	<description>WebSphere 7.x Remote Container integration for the Arquillian Project</description>
+
+
+	<!-- Properties -->
+	<properties>
+
+		<websphere_home>/home/aslak/dev/servers/WebSphere-7.0</websphere_home>
+
+	</properties>
+
+	<!-- Dependencies -->
+	<dependencies>
+
+		<!-- org.jboss.arquillian -->
+		<dependency>
+			<groupId>org.jboss.arquillian</groupId>
+			<artifactId>arquillian-spi</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.arquillian.protocol</groupId>
+			<artifactId>arquillian-protocol-servlet-2.5</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jboss.arquillian.testenricher</groupId>
+			<artifactId>arquillian-testenricher-ejb</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.arquillian.testenricher</groupId>
+			<artifactId>arquillian-testenricher-resource</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- com.ibm.websphere -->
+		
+		<dependency>
+			<groupId>com.ibm.websphere</groupId>
+			<artifactId>was-public</artifactId>
+			<version>7.0.0</version>
+			<scope>system</scope>
+			<systemPath>${websphere_home}/dev/was_public.jar</systemPath>
+		</dependency>
+
+	<!-- Testing -->
+
+		<dependency>
+			<groupId>org.jboss.arquillian</groupId>
+			<artifactId>arquillian-junit</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+        <dependency>
+           <groupId>org.jboss.ejb3</groupId> 
+           <artifactId>jboss-ejb3-api</artifactId> 
+           <version>3.1.0</version>
+           <scope>test</scope>
+        </dependency>
+
+		<!-- com.ibm.websphere -->
+		
+		<dependency>
+			<groupId>com.ibm.websphere</groupId>
+			<artifactId>ws-admin-client</artifactId>
+			<version>7.0.0</version>
+			<scope>system</scope>
+			<systemPath>${websphere_home}/runtimes/com.ibm.ws.admin.client_7.0.0.jar</systemPath>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.ibm.websphere</groupId>
+			<artifactId>jgss-provider</artifactId>
+			<version>7.0.0</version>
+			<scope>system</scope>
+			<systemPath>${websphere_home}/java/jre/lib/ibmjgssprovider.jar</systemPath>
+		</dependency>
+				
+	</dependencies>
+</project>
+
