@@ -1,15 +1,16 @@
-<arquillian 
-	xmlns="http://jboss.com/arquillian" 
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:ws="urn:arq:org.jboss.arquillian.container.websphere.remote_7">
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<arquillian xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian-1.0.xsd">
 
 	<engine>
-		<deploymentExportPath>target/</deploymentExportPath>
+		<property name="deploymentExportPath">target/</property>
 	</engine>
 
-	<ws:container>
-		<ws:remoteServerAddress>localhost</ws:remoteServerAddress>
-		<ws:remoteServerHttpPort>8880</ws:remoteServerHttpPort>
-		<ws:remoteServerHttpPort>9080</ws:remoteServerHttpPort>
-	</ws:container>
+	<container qualifier="websphere" default="true">
+		<configuration>
+			<property name="remoteServerAddress">localhost</property>
+			<property name="remoteServerSoapPort">8880</property>
+			<property name="remoteServerHttpPort">9080</property>
+		</configuration>
+	</container>
 </arquillian>

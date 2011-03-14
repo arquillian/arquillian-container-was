@@ -16,7 +16,7 @@
  */
 package org.jboss.arquillian.container.websphere.remote_7;
 
-import org.jboss.arquillian.spi.AuxiliaryArchiveAppender;
+import org.jboss.arquillian.spi.client.deployment.AuxiliaryArchiveAppender;
 import org.jboss.arquillian.spi.TestEnricher;
 import org.jboss.arquillian.testenricher.ejb.EJBInjectionEnricher;
 import org.jboss.arquillian.testenricher.resource.ResourceInjectionEnricher;
@@ -41,7 +41,7 @@ public class WebSphereRemoteEnricherAppender implements AuxiliaryArchiveAppender
                   .addPackages(true, 
                         EJBInjectionEnricher.class.getPackage(),
                         ResourceInjectionEnricher.class.getPackage())
-                  .addServiceProvider(
+                  .addAsServiceProvider(
                         TestEnricher.class, 
                         EJBInjectionEnricher.class,
                         ResourceInjectionEnricher.class);

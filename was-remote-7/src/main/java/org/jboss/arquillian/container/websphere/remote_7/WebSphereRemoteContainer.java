@@ -17,7 +17,6 @@
 package org.jboss.arquillian.container.websphere.remote_7;
 
 import java.io.File;
-import java.net.URL;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Properties;
@@ -26,15 +25,15 @@ import javax.jms.IllegalStateException;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
 
-import org.jboss.arquillian.protocol.servlet_2_5.ServletMethodExecutor;
-import org.jboss.arquillian.spi.Configuration;
-import org.jboss.arquillian.spi.ContainerMethodExecutor;
-import org.jboss.arquillian.spi.Context;
-import org.jboss.arquillian.spi.DeployableContainer;
-import org.jboss.arquillian.spi.DeploymentException;
-import org.jboss.arquillian.spi.LifecycleException;
+import org.jboss.arquillian.spi.client.container.DeployableContainer;
+import org.jboss.arquillian.spi.client.container.DeploymentException;
+import org.jboss.arquillian.spi.client.container.LifecycleException;
+import org.jboss.arquillian.spi.client.protocol.ProtocolDescription;
+import org.jboss.arquillian.spi.client.protocol.metadata.HTTPContext;
+import org.jboss.arquillian.spi.client.protocol.metadata.ProtocolMetaData;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 
 import com.ibm.websphere.management.AdminClient;
 import com.ibm.websphere.management.AdminClientFactory;
@@ -49,13 +48,13 @@ import com.ibm.websphere.management.application.AppNotification;
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
  */
-public class WebSphereRemoteContianer implements DeployableContainer
+public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRemoteContainerConfiguration>
 {
    //-------------------------------------------------------------------------------------||
    // Instance Members -------------------------------------------------------------------||
    //-------------------------------------------------------------------------------------||
    
-   private WebSphereRemoteContainerConfiguraiton containerConfiguraiton;
+   private WebSphereRemoteContainerConfiguration containerConfiguration;
 
    private AdminClient adminClient;
 
@@ -66,22 +65,22 @@ public class WebSphereRemoteContianer implements DeployableContainer
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.DeployableContainer#setup(org.jboss.arquillian.spi.Context, org.jboss.arquillian.spi.Configuration)
     */
-   public void setup(Context context, Configuration configuration)
+   public void setup(WebSphereRemoteContainerConfiguration configuration)
    {
-      this.containerConfiguraiton = configuration.getContainerConfig(WebSphereRemoteContainerConfiguraiton.class);
+	   this.containerConfiguration = configuration;
    }
 
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.DeployableContainer#start(org.jboss.arquillian.spi.Context)
     */
-   public void start(Context context) throws LifecycleException
+   public void start() throws LifecycleException
    {
       Properties wasServerProps = new Properties();
-      wasServerProps.setProperty(AdminClient.CONNECTOR_HOST, containerConfiguraiton.getRemoteServerAddress());
-      wasServerProps.setProperty(AdminClient.CONNECTOR_PORT, String.valueOf(containerConfiguraiton.getRemoteServerSoapPort()));
+      wasServerProps.setProperty(AdminClient.CONNECTOR_HOST, containerConfiguration.getRemoteServerAddress());
+      wasServerProps.setProperty(AdminClient.CONNECTOR_PORT, String.valueOf(containerConfiguration.getRemoteServerSoapPort()));
       wasServerProps.setProperty(AdminClient.CONNECTOR_TYPE, AdminClient.CONNECTOR_TYPE_SOAP);
       wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "false");
-      wasServerProps.setProperty(AdminClient.USERNAME, containerConfiguraiton.getUsername());
+      wasServerProps.setProperty(AdminClient.USERNAME, containerConfiguration.getUsername());
 //      wasServerProps.setProperty(AdminClient.PASSWORD, "admin");
       
       try
@@ -97,7 +96,7 @@ public class WebSphereRemoteContianer implements DeployableContainer
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.DeployableContainer#deploy(org.jboss.arquillian.spi.Context, org.jboss.shrinkwrap.api.Archive)
     */
-   public ContainerMethodExecutor deploy(Context context, Archive<?> archive) throws DeploymentException
+   public ProtocolMetaData deploy(final Archive<?> archive) throws DeploymentException
    {
       String appName = createDeploymentName(archive.getName());
       String appExtension = createDeploymentExtension(archive.getName());
@@ -185,26 +184,21 @@ public class WebSphereRemoteContianer implements DeployableContainer
             exportedArchiveLocation.delete();
          }
       }
-      try 
-      {
-         return new ServletMethodExecutor(
-               new URL(
-                     "http",
-                     containerConfiguraiton.getRemoteServerAddress(),
-                     containerConfiguraiton.getRemoteServerHttpPort(), 
-                     "/")
-               );
-      } 
-      catch (Exception e) 
-      {
-         throw new RuntimeException("Could not create ContianerMethodExecutor", e);
-      }
+
+      ProtocolMetaData metaData = new ProtocolMetaData();
+      
+   	HTTPContext httpContext = new HTTPContext(
+   			containerConfiguration.getRemoteServerAddress(),
+   			containerConfiguration.getRemoteServerHttpPort());
+      metaData.addContext(httpContext);
+      
+      return metaData;
    }
 
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.DeployableContainer#undeploy(org.jboss.arquillian.spi.Context, org.jboss.shrinkwrap.api.Archive)
     */
-   public void undeploy(Context context, Archive<?> archive) throws DeploymentException
+   public void undeploy(final Archive<?> archive) throws DeploymentException
    {
       String appName = createDeploymentName(archive.getName());
       
@@ -254,7 +248,7 @@ public class WebSphereRemoteContianer implements DeployableContainer
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.DeployableContainer#stop(org.jboss.arquillian.spi.Context)
     */
-   public void stop(Context context) throws LifecycleException
+   public void stop() throws LifecycleException
    {
    }
 
@@ -271,4 +265,23 @@ public class WebSphereRemoteContianer implements DeployableContainer
    {
       return archiveName.substring(archiveName.lastIndexOf("."));
    }
+
+	public Class<WebSphereRemoteContainerConfiguration> getConfigurationClass() {
+		// TODO Auto-generated method stub
+		return WebSphereRemoteContainerConfiguration.class;
+	}
+	
+	public ProtocolDescription getDefaultProtocol() {
+		return new ProtocolDescription("Servlet 2.5");
+	}
+	
+	public void deploy(Descriptor descriptor) throws DeploymentException {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public void undeploy(Descriptor descriptor) throws DeploymentException {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -42,7 +42,7 @@ public class WebsphereIntegrationClientTestCase
    public static EnterpriseArchive createDeployment() 
    {
       return ShrinkWrap.create(EnterpriseArchive.class, "test.ear")
-                  .addModule(ShrinkWrap.create(JavaArchive.class, "test.jar")
+                  .addAsModule(ShrinkWrap.create(JavaArchive.class, "test.jar")
                                     .addClass(MyEjb.class));
    }
    

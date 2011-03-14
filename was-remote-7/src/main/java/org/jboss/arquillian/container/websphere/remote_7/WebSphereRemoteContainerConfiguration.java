@@ -16,8 +16,9 @@
  */
 package org.jboss.arquillian.container.websphere.remote_7;
 
-import org.jboss.arquillian.spi.ContainerConfiguration;
+import org.jboss.arquillian.spi.ConfigurationException;
 import org.jboss.arquillian.spi.ContainerProfile;
+import org.jboss.arquillian.spi.client.container.ContainerConfiguration;
 
 /**
  * WebSphereRemoteConfiguraiton
@@ -25,7 +26,7 @@ import org.jboss.arquillian.spi.ContainerProfile;
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
  */
-public class WebSphereRemoteContainerConfiguraiton implements ContainerConfiguration
+public class WebSphereRemoteContainerConfiguration implements ContainerConfiguration
 {
    private String remoteServerAddress = "localhost";
    private Integer remoteServerSoapPort = 8880;
@@ -105,4 +106,9 @@ public class WebSphereRemoteContainerConfiguraiton implements ContainerConfigura
    {
       this.username = username;
    }
+
+	public void validate() throws ConfigurationException {
+		// TODO Auto-generated method stub
+		
+	}
 }
