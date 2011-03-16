@@ -41,6 +41,7 @@ import com.ibm.websphere.management.application.AppConstants;
 import com.ibm.websphere.management.application.AppManagement;
 import com.ibm.websphere.management.application.AppManagementProxy;
 import com.ibm.websphere.management.application.AppNotification;
+import com.ibm.websphere.management.application.client.AppDeploymentController;
 
 /**
  * WebSphereRemoteContianer
@@ -108,9 +109,6 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          exportedArchiveLocation = File.createTempFile(appName, appExtension);
          archive.as(ZipExporter.class).exportZip(exportedArchiveLocation, true);
          
-//         Session configSession = new Session(containerConfiguraiton.getUsername(), false);
-//         ConfigServiceProxy configProxy = new ConfigServiceProxy(adminClient);
-
          Hashtable<Object, Object> prefs = new Hashtable<Object, Object>();
 //         prefs.put(AppConstants.APPDEPL_WEB_CONTEXTROOT, appName);
 //         prefs.put(AppConstants.APPDEPL_PRECOMPILE_JSP, Boolean.FALSE);
@@ -125,6 +123,17 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    
          prefs.put(AppConstants.APPDEPL_LOCALE, Locale.getDefault());
 
+         // Prepare application for deployment to WebSphere Application Server
+         AppDeploymentController controller = AppDeploymentController
+         	.readArchive(exportedArchiveLocation.getAbsolutePath(), prefs);
+         
+         String[] validationResult = controller.validate();
+         if (validationResult != null && validationResult.length > 0) {
+        	 throw new DeploymentException("Unable to complete all task data for deployment preparation.");
+         }
+         
+         controller.saveAndClose();
+         
          Hashtable<Object, Object> module2Server = new Hashtable<Object, Object>();
          ObjectName serverMBean = adminClient.getServerMBean();
          
@@ -132,8 +141,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
                               + ",node=" + serverMBean.getKeyProperty("node")
                               + ",server=" + serverMBean.getKeyProperty("process");
    
-         module2Server.put("arquillian-protocol.war,WEB-INF/web.xml",targetServer);
-         module2Server.put("test.jar,META-INF/ejb-jar.xml",targetServer);
+         module2Server.put("*",targetServer);
          
          prefs.put(AppConstants.APPDEPL_MODULE_TO_SERVER, module2Server);
          prefs.put(AppConstants.APPDEPL_ARCHIVE_UPLOAD, Boolean.TRUE);
@@ -141,7 +149,9 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
 //         Hashtable<Object, Object> mapWebModToVH = new Hashtable<Object, Object>();
 //         mapWebModToVH.put("arquillian-protocol.war,WEB-INF/web.xml", "default_host");
 //         prefs.put(AppConstants.APPDEPL_VIRTUAL_HOST, mapWebModToVH);
-   
+         
+         AppManagement appManagementProxy = AppManagementProxy.getJMXProxyForClient(adminClient);
+         
          NotificationFilterSupport filterSupport = new NotificationFilterSupport();
          filterSupport.enableType(AppConstants.NotificationType);
          DeploymentNotificationListener listener = new DeploymentNotificationListener(
@@ -150,14 +160,11 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
                   "Install " + appName,
                   AppNotification.INSTALL);
          
-         AppManagement appManagementProxy = AppManagementProxy.getJMXProxyForClient(adminClient);
-         
          appManagementProxy.installApplication(
                exportedArchiveLocation.getAbsolutePath(),
                appName, 
                prefs,
                null);
-//               configSession.getSessionId());
          
          synchronized(listener) 
          {
@@ -165,12 +172,15 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          }
          if(listener.isSuccessful())
          {
-//            configProxy.save(configSession, true);
+        	 // TODO: Wait for rollout of the application before starting it
+        	 Thread.sleep(2000);
+        	 appManagementProxy.startApplication(appName, null, null);
+        	 // TODO: Check whether starting the app is blocking or if it needs another notification.
+        	 Thread.sleep(2000);
          }
          else
          {
             throw new IllegalStateException("Application not sucessfully deployed: " + listener.getMessage());
-            //configProxy.discard(configSession);
          }
       } 
       catch (Exception e) 
