@@ -16,7 +16,7 @@
  */
 package org.jboss.arquillian.container.websphere.remote_7.ejb;
 
-import javax.ejb.Stateless;
+import javax.ejb.Local;
 
 /**
  * MyEjb
@@ -24,11 +24,8 @@ import javax.ejb.Stateless;
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
  */
-@Stateless
-public class MyEjb implements MyEjbLocal
+@Local
+public interface MyEjbLocal
 {
-   public String getName() 
-   {
-      return "aslak";
-   }
+   public String getName();
 }

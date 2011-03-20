@@ -17,6 +17,7 @@
 package org.jboss.arquillian.container.websphere.remote_7;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Properties;
@@ -25,12 +26,14 @@ import javax.jms.IllegalStateException;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
 
+import org.jboss.arquillian.protocol.servlet.ServletMethodExecutor;
 import org.jboss.arquillian.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.spi.client.container.DeploymentException;
 import org.jboss.arquillian.spi.client.container.LifecycleException;
 import org.jboss.arquillian.spi.client.protocol.ProtocolDescription;
 import org.jboss.arquillian.spi.client.protocol.metadata.HTTPContext;
 import org.jboss.arquillian.spi.client.protocol.metadata.ProtocolMetaData;
+import org.jboss.arquillian.spi.client.protocol.metadata.Servlet;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
@@ -44,9 +47,10 @@ import com.ibm.websphere.management.application.AppNotification;
 import com.ibm.websphere.management.application.client.AppDeploymentController;
 
 /**
- * WebSphereRemoteContianer
+ * WebSphereRemoteContainer
  *
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
+ * @author <a href="mailto:gerhard.poul@gmail.com">Gerhard Poul</a>
  * @version $Revision: $
  */
 public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRemoteContainerConfiguration>
@@ -107,29 +111,23 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       try
       {
          exportedArchiveLocation = File.createTempFile(appName, appExtension);
-         archive.as(ZipExporter.class).exportZip(exportedArchiveLocation, true);
+         archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
          
          Hashtable<Object, Object> prefs = new Hashtable<Object, Object>();
-//         prefs.put(AppConstants.APPDEPL_WEB_CONTEXTROOT, appName);
-//         prefs.put(AppConstants.APPDEPL_PRECOMPILE_JSP, Boolean.FALSE);
-//         prefs.put(AppConstants.APPDEPL_DISTRIBUTE_APP, Boolean.TRUE);
-//         prefs.put(AppConstants.APPDEPL_USE_BINARY_CONFIG, Boolean.FALSE);
-//         prefs.put(AppConstants.APPDEPL_DEPLOYEJB_CMDARG, Boolean.FALSE);
-//         prefs.put(AppConstants.APPDEPL_FILETRANSFER_UPLOAD , Boolean.TRUE);
-//         prefs.put(AppConstants.APPDEPL_VALIDATE_APP, Boolean.FALSE);
-//         prefs.put(AppConstants.APPDEPL_MBEANFORRES, Boolean.TRUE);
-//         prefs.put(AppConstants.APPDEPL_FILEPERMISSION, ".*\\.dll=755#.*\\.so=755#.*\\.a=755#.*\\.sl=755");
          
-   
          prefs.put(AppConstants.APPDEPL_LOCALE, Locale.getDefault());
+
+         Properties props = new Properties();
+         prefs.put (AppConstants.APPDEPL_DFLTBNDG, props);
+         props.put (AppConstants.APPDEPL_DFLTBNDG_VHOST, "default_host");
 
          // Prepare application for deployment to WebSphere Application Server
          AppDeploymentController controller = AppDeploymentController
          	.readArchive(exportedArchiveLocation.getAbsolutePath(), prefs);
-         
+
          String[] validationResult = controller.validate();
          if (validationResult != null && validationResult.length > 0) {
-        	 throw new DeploymentException("Unable to complete all task data for deployment preparation.");
+            throw new DeploymentException("Unable to complete all task data for deployment preparation. Reason: " + Arrays.toString(validationResult));
          }
          
          controller.saveAndClose();
@@ -145,10 +143,6 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          
          prefs.put(AppConstants.APPDEPL_MODULE_TO_SERVER, module2Server);
          prefs.put(AppConstants.APPDEPL_ARCHIVE_UPLOAD, Boolean.TRUE);
-//         
-//         Hashtable<Object, Object> mapWebModToVH = new Hashtable<Object, Object>();
-//         mapWebModToVH.put("arquillian-protocol.war,WEB-INF/web.xml", "default_host");
-//         prefs.put(AppConstants.APPDEPL_VIRTUAL_HOST, mapWebModToVH);
          
          AppManagement appManagementProxy = AppManagementProxy.getJMXProxyForClient(adminClient);
          
@@ -200,6 +194,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    	HTTPContext httpContext = new HTTPContext(
    			containerConfiguration.getRemoteServerAddress(),
    			containerConfiguration.getRemoteServerHttpPort());
+      httpContext.add(new Servlet(ServletMethodExecutor.ARQUILLIAN_SERVLET_NAME, "arquillian-protocol"));
       metaData.addContext(httpContext);
       
       return metaData;
