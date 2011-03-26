@@ -21,11 +21,6 @@
 
 
 	<!-- Properties -->
-	<properties>
-
-		<websphere_home>/home/aslak/dev/servers/WebSphere-7.0</websphere_home>
-
-	</properties>
 
 	<!-- Dependencies -->
 	<dependencies>
@@ -60,7 +55,7 @@
 			<artifactId>was-public</artifactId>
 			<version>7.0.0</version>
 			<scope>system</scope>
-			<systemPath>${websphere_home}/dev/was_public.jar</systemPath>
+			<systemPath>${env.WAS_HOME}/dev/was_public.jar</systemPath>
 		</dependency>
 
 	<!-- Testing -->
@@ -92,7 +87,7 @@
 			<artifactId>ws-admin-client</artifactId>
 			<version>7.0.0</version>
 			<scope>system</scope>
-			<systemPath>${websphere_home}/runtimes/com.ibm.ws.admin.client_7.0.0.jar</systemPath>
+			<systemPath>${env.WAS_HOME}/runtimes/com.ibm.ws.admin.client_7.0.0.jar</systemPath>
 		</dependency>
 		
 		<dependency>
@@ -100,7 +95,7 @@
 			<artifactId>jgss-provider</artifactId>
 			<version>7.0.0</version>
 			<scope>system</scope>
-			<systemPath>${websphere_home}/java/jre/lib/ibmjgssprovider.jar</systemPath>
+			<systemPath>${env.WAS_HOME}/java/jre/lib/ibmjgssprovider.jar</systemPath>
 		</dependency>
 				
 	</dependencies>
