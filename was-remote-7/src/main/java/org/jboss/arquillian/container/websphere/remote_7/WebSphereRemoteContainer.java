@@ -92,6 +92,14 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       try
       {
          adminClient = AdminClientFactory.createAdminClient(wasServerProps);
+         
+         ObjectName serverMBean = adminClient.getServerMBean();
+         String processType = serverMBean.getKeyProperty("processType");
+         
+         if (processType.equals("DeploymentManager")
+               || processType.equals("NodeAgent")
+               || processType.equals("ManagedProcess"))
+            throw new IllegalStateException("Connecting to a " + processType + " is not supported.");
       } 
       catch (Exception e) 
       {
