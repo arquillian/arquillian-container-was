@@ -23,6 +23,7 @@ import java.util.Locale;
 import java.util.Properties;
 
 import javax.jms.IllegalStateException;
+import javax.management.MalformedObjectNameException;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
 
@@ -164,17 +165,35 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          {
             listener.wait();
          }
-         if(listener.isSuccessful())
+
+         if(!listener.isSuccessful())
+            throw new IllegalStateException("Application not sucessfully deployed: " + listener.getMessage());            
+
+         DeploymentNotificationListener distributionListener = null;
+         int checkCount = 0;
+         while (checkDistributionStatus(distributionListener) != AppNotification.DISTRIBUTION_DONE
+               && ++checkCount < 300)
          {
-        	 // TODO: Wait for rollout of the application before starting it
-        	 Thread.sleep(2000);
-        	 appManagementProxy.startApplication(appName, null, null);
-        	 // TODO: Check whether starting the app is blocking or if it needs another notification.
-        	 Thread.sleep(2000);
+            Thread.sleep(1000);
+            
+            distributionListener = new DeploymentNotificationListener(
+                  adminClient,
+                  filterSupport,
+                  null,
+                  AppNotification.DISTRIBUTION_STATUS_NODE);
+            
+            synchronized(distributionListener)
+            {
+               appManagementProxy.getDistributionStatus(appName, new Hashtable<Object, Object>(), null);
+               distributionListener.wait();
+            }
          }
-         else
+
+         if (checkCount < 300)
          {
-            throw new IllegalStateException("Application not sucessfully deployed: " + listener.getMessage());
+            appManagementProxy.startApplication(appName, null, null);
+         } else {
+            throw new IllegalStateException("Distribution of application did not succeed to all nodes.");
          }
       } 
       catch (Exception e) 
@@ -198,6 +217,45 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       metaData.addContext(httpContext);
       
       return metaData;
+   }
+
+   /*
+    * Checks the listener and figures out the aggregate distribution status of all nodes
+    */
+   private String checkDistributionStatus(DeploymentNotificationListener listener) throws MalformedObjectNameException, NullPointerException, IllegalStateException {
+      String distributionState = AppNotification.DISTRIBUTION_UNKNOWN;
+      if (listener != null)
+      {
+        String compositeStatus = listener.getNotificationProps()
+           .getProperty(AppNotification.DISTRIBUTION_STATUS_COMPOSITE);
+        if (compositeStatus != null)
+        {
+           String[] serverStati = compositeStatus.split("\\+");
+           int countTrue = 0, countFalse = 0, countUnknown = 0;
+           for (String serverStatus : serverStati)
+           {
+              ObjectName objectName = new ObjectName(serverStatus);
+              distributionState = objectName.getKeyProperty("distribution");
+              if (distributionState.equals("true"))
+                 countTrue++;
+              if (distributionState.equals("false"))
+                 countFalse++;
+              if (distributionState.equals("unknown"))
+                 countUnknown++;
+           }
+           if (countUnknown > 0)
+           {
+              distributionState = AppNotification.DISTRIBUTION_UNKNOWN;
+           } else if (countFalse > 0) {
+              distributionState = AppNotification.DISTRIBUTION_NOT_DONE;
+           } else if (countTrue > 0) {
+              distributionState = AppNotification.DISTRIBUTION_DONE;
+           } else {
+              throw new IllegalStateException("Reported distribution status is invalid.");
+           }
+        }
+      }
+      return distributionState;
    }
 
    /* (non-Javadoc)

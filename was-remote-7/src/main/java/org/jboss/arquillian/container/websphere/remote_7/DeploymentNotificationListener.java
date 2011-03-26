@@ -1,5 +1,7 @@
 package org.jboss.arquillian.container.websphere.remote_7;
 
+import java.util.Properties;
+
 import javax.management.Notification;
 import javax.management.NotificationFilterSupport;
 import javax.management.NotificationListener;
@@ -16,6 +18,7 @@ public class DeploymentNotificationListener implements NotificationListener
    private String eventTypeToCheck;
    private boolean successful = true;
    private String message = "";
+   private Properties notificationProps = new Properties();
 
    public DeploymentNotificationListener(AdminClient adminClient, NotificationFilterSupport support, Object handBack, String eventTypeToCheck) 
       throws Exception
@@ -44,6 +47,8 @@ public class DeploymentNotificationListener implements NotificationListener
             if (appNotification.taskStatus.equals(AppNotification.STATUS_FAILED))
             {
                successful = false;
+            } else {
+               notificationProps = appNotification.props;
             }
                
             synchronized (this)
@@ -60,6 +65,11 @@ public class DeploymentNotificationListener implements NotificationListener
    public String getMessage()
    {
       return message;
+   }
+   
+   public Properties getNotificationProps()
+   {
+      return notificationProps;
    }
    
    public boolean isSuccessful()
