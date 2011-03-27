@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import javax.jms.IllegalStateException;
 import javax.management.MalformedObjectNameException;
@@ -60,6 +61,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    // Instance Members -------------------------------------------------------------------||
    //-------------------------------------------------------------------------------------||
    
+   private static Logger log = Logger.getLogger(WebSphereRemoteContainer.class.getName());
+   
    private WebSphereRemoteContainerConfiguration containerConfiguration;
 
    private AdminClient adminClient;
@@ -95,6 +98,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          
          ObjectName serverMBean = adminClient.getServerMBean();
          String processType = serverMBean.getKeyProperty("processType");
+         
+         log.fine("CanonicalKeyPropertyListString: " + serverMBean.getCanonicalKeyPropertyListString());
          
          if (processType.equals("DeploymentManager")
                || processType.equals("NodeAgent")
@@ -147,6 +152,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          String targetServer = "WebSphere:cell=" + serverMBean.getKeyProperty("cell")
                               + ",node=" + serverMBean.getKeyProperty("node")
                               + ",server=" + serverMBean.getKeyProperty("process");
+         
+         log.info("Target server for deployment is " + targetServer);
    
          module2Server.put("*",targetServer);
          
@@ -199,7 +206,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
 
          if (checkCount < 300)
          {
-            appManagementProxy.startApplication(appName, null, null);
+            String targetsStarted = appManagementProxy.startApplication(appName, null, null);
+            log.info("Application was started on the following targets: " + targetsStarted);
          } else {
             throw new IllegalStateException("Distribution of application did not succeed to all nodes.");
          }
@@ -238,12 +246,14 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
            .getProperty(AppNotification.DISTRIBUTION_STATUS_COMPOSITE);
         if (compositeStatus != null)
         {
+           log.finer("compositeStatus: " + compositeStatus);
            String[] serverStati = compositeStatus.split("\\+");
            int countTrue = 0, countFalse = 0, countUnknown = 0;
            for (String serverStatus : serverStati)
            {
               ObjectName objectName = new ObjectName(serverStatus);
               distributionState = objectName.getKeyProperty("distribution");
+              log.finer("distributionState: " + distributionState);
               if (distributionState.equals("true"))
                  countTrue++;
               if (distributionState.equals("false"))

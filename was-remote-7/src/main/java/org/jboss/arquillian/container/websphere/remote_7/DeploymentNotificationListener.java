@@ -1,6 +1,8 @@
 package org.jboss.arquillian.container.websphere.remote_7;
 
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.management.Notification;
 import javax.management.NotificationFilterSupport;
@@ -12,6 +14,7 @@ import com.ibm.websphere.management.application.AppNotification;
 
 public class DeploymentNotificationListener implements NotificationListener
 {
+   private static Logger log = Logger.getLogger(DeploymentNotificationListener.class.getName());
    private AdminClient adminClient;
    private NotificationFilterSupport filterSupport;
    private ObjectName objectName;
@@ -35,6 +38,12 @@ public class DeploymentNotificationListener implements NotificationListener
    public void handleNotification(Notification notification, Object handback)
    {
       AppNotification appNotification = (AppNotification) notification.getUserData();
+      if (log.isLoggable(Level.FINEST)) {
+         log.finest("handleNotification message: " + appNotification.message);
+         log.finest("handleNotification taskName: " + appNotification.taskName);
+         log.finest("handleNotification taskStatus: " + appNotification.taskStatus);
+         log.finest("handleNotification eventProps: " + appNotification.props);
+      }
       message = message += "\n" + appNotification.message;
       if (
             appNotification.taskName.equals(eventTypeToCheck) && 
