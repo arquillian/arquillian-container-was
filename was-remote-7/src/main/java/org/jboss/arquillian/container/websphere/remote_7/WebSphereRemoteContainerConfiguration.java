@@ -32,8 +32,16 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    private Integer remoteServerSoapPort = 8880;
    
    private Integer remoteServerHttpPort = 9080;
+   
+   private String securityEnabled = "false";
 
    private String username = "admin";
+   private String password = "admin";
+   
+   private String sslTrustStore = "";
+   private String sslKeyStore = "";
+   private String sslTrustStorePassword = "WebAS";
+   private String sslKeyStorePassword = "WebAS";
    
    /* (non-Javadoc)
     * @see org.jboss.arquillian.spi.ContainerConfiguration#getContainerProfile()
@@ -91,6 +99,14 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
       this.remoteServerHttpPort = remoteServerHttpPort;
    }
 
+   public void setSecurityEnabled(String securityEnabled) {
+      this.securityEnabled = securityEnabled;
+   }
+
+   public String getSecurityEnabled() {
+      return securityEnabled;
+   }
+
    /**
     * @return the username
     */
@@ -107,7 +123,47 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
       this.username = username;
    }
 
-	public void validate() throws ConfigurationException {
+	public void setPassword(String password) {
+      this.password = password;
+   }
+
+   public String getPassword() {
+      return password;
+   }
+
+   public void setSslTrustStore(String sslTrustStore) {
+      this.sslTrustStore = sslTrustStore;
+   }
+
+   public String getSslTrustStore() {
+      return sslTrustStore;
+   }
+
+   public void setSslKeyStore(String sslKeyStore) {
+      this.sslKeyStore = sslKeyStore;
+   }
+
+   public String getSslKeyStore() {
+      return sslKeyStore;
+   }
+
+   public void setSslTrustStorePassword(String sslTrustStorePassword) {
+      this.sslTrustStorePassword = sslTrustStorePassword;
+   }
+
+   public String getSslTrustStorePassword() {
+      return sslTrustStorePassword;
+   }
+
+   public void setSslKeyStorePassword(String sslKeyStorePassword) {
+      this.sslKeyStorePassword = sslKeyStorePassword;
+   }
+
+   public String getSslKeyStorePassword() {
+      return sslKeyStorePassword;
+   }
+
+   public void validate() throws ConfigurationException {
 		// TODO Auto-generated method stub
 		
 	}

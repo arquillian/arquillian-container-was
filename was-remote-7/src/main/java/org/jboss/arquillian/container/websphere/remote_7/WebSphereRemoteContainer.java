@@ -88,9 +88,20 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       wasServerProps.setProperty(AdminClient.CONNECTOR_HOST, containerConfiguration.getRemoteServerAddress());
       wasServerProps.setProperty(AdminClient.CONNECTOR_PORT, String.valueOf(containerConfiguration.getRemoteServerSoapPort()));
       wasServerProps.setProperty(AdminClient.CONNECTOR_TYPE, AdminClient.CONNECTOR_TYPE_SOAP);
-      wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "false");
       wasServerProps.setProperty(AdminClient.USERNAME, containerConfiguration.getUsername());
-//      wasServerProps.setProperty(AdminClient.PASSWORD, "admin");
+      
+      if (containerConfiguration.getSecurityEnabled().equalsIgnoreCase("true"))
+      {
+         wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "true");
+         wasServerProps.setProperty(AdminClient.PASSWORD, containerConfiguration.getPassword());
+         wasServerProps.setProperty(AdminClient.CACHE_DISABLED, "false"); 
+         wasServerProps.setProperty("javax.net.ssl.trustStore", containerConfiguration.getSslTrustStore());
+         wasServerProps.setProperty("javax.net.ssl.keyStore", containerConfiguration.getSslKeyStore());
+         wasServerProps.setProperty("javax.net.ssl.trustStorePassword", containerConfiguration.getSslTrustStorePassword());
+         wasServerProps.setProperty("javax.net.ssl.keyStorePassword", containerConfiguration.getSslKeyStorePassword());
+      } else {
+         wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "false");
+      }
       
       try
       {
@@ -108,7 +119,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       } 
       catch (Exception e) 
       {
-         throw new LifecycleException("Could not create AdminClient", e);
+         throw new LifecycleException("Could not create AdminClient: " + e.getMessage(), e);
       }
    }
 

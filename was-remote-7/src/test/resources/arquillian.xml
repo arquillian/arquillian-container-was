@@ -11,6 +11,11 @@
 			<property name="remoteServerAddress">localhost</property>
 			<property name="remoteServerSoapPort">8880</property>
 			<property name="remoteServerHttpPort">9080</property>
+			<property name="securityEnabled">false</property>
+			<property name="username">admin</property>
+			<!-- <property name="password">admin</property>
+ 			<property name="sslTrustStore">C:/IBM/WebSphere/AppServer/profiles/AppSrv01/etc/DummyClientTrustFile.jks</property>
+			<property name="sslTrustStorePassword">WebAS</property> -->
 		</configuration>
 	</container>
 </arquillian>
