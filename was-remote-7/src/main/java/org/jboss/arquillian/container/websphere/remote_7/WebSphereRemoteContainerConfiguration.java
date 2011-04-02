@@ -33,7 +33,7 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    
    private Integer remoteServerHttpPort = 9080;
    
-   private String securityEnabled = "false";
+   private boolean securityEnabled = false;
 
    private String username = "admin";
    private String password = "admin";
@@ -99,11 +99,11 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
       this.remoteServerHttpPort = remoteServerHttpPort;
    }
 
-   public void setSecurityEnabled(String securityEnabled) {
+   public void setSecurityEnabled(boolean securityEnabled) {
       this.securityEnabled = securityEnabled;
    }
 
-   public String getSecurityEnabled() {
+   public boolean getSecurityEnabled() {
       return securityEnabled;
    }
 

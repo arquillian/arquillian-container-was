@@ -106,7 +106,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       wasServerProps.setProperty(AdminClient.CONNECTOR_TYPE, AdminClient.CONNECTOR_TYPE_SOAP);
       wasServerProps.setProperty(AdminClient.USERNAME, containerConfiguration.getUsername());
       
-      if (containerConfiguration.getSecurityEnabled().equalsIgnoreCase("true"))
+      if (containerConfiguration.getSecurityEnabled())
       {
          wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "true");
          wasServerProps.setProperty(AdminClient.PASSWORD, containerConfiguration.getPassword());
