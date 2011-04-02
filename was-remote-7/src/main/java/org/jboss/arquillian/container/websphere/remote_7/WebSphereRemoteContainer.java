@@ -17,11 +17,14 @@
 package org.jboss.arquillian.container.websphere.remote_7;
 
 import java.io.File;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.jms.IllegalStateException;
@@ -31,8 +34,10 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 
-import org.jboss.arquillian.protocol.servlet.ServletMethodExecutor;
 import org.jboss.arquillian.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.spi.client.container.DeploymentException;
 import org.jboss.arquillian.spi.client.container.LifecycleException;
@@ -43,6 +48,9 @@ import org.jboss.arquillian.spi.client.protocol.metadata.Servlet;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import com.ibm.websphere.management.AdminClient;
 import com.ibm.websphere.management.AdminClientFactory;
@@ -234,7 +242,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          
          metaData = discoverProtocolMetaDataFromConfiguration(adminClient, 
                serverMBean.getKeyProperty("node"),
-               serverMBean.getKeyProperty("process"));
+               serverMBean.getKeyProperty("process"),
+               appName);
       } 
       catch (Exception e) 
       {
@@ -252,7 +261,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    }
    
    @SuppressWarnings("rawtypes")
-   private ProtocolMetaData discoverProtocolMetaDataFromConfiguration(AdminClient adminClient, String targetNode, String targetProcess) throws InstanceNotFoundException, ConnectorException, ConfigServiceException {
+   private ProtocolMetaData discoverProtocolMetaDataFromConfiguration(AdminClient adminClient, String targetNode, String targetProcess, String appName) throws InstanceNotFoundException, ConnectorException, ConfigServiceException {
       ProtocolMetaData metaData = new ProtocolMetaData();
       String remoteServerAddress = null;
       int remoteServerHttpPort = 0;
@@ -290,7 +299,74 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       
       log.fine("Generating HTTPContext: " + remoteServerAddress + ", " + remoteServerHttpPort);
       HTTPContext httpContext = new HTTPContext(remoteServerAddress, remoteServerHttpPort);
-      httpContext.add(new Servlet(ServletMethodExecutor.ARQUILLIAN_SERVLET_NAME, "arquillian-protocol"));
+      
+      try {
+         Set applicationObjectNameSet = adminClient.queryNames(
+               new ObjectName("WebSphere:type=J2EEApplication,name=" + appName + ",*"), null);
+         if (applicationObjectNameSet.isEmpty())
+            throw new InstanceNotFoundException("Unable to find application in JMX: " + appName);
+         
+         ObjectName applicationObjectName = (ObjectName)applicationObjectNameSet.iterator().next();
+         String applicationDD = (String)adminClient.getAttribute(applicationObjectName, "deploymentDescriptor");
+
+         log.fine("applicationDD: " + applicationDD);
+         
+         XPath xpath = XPathFactory.newInstance().newXPath();
+         xpath.setNamespaceContext(new JavaEENamespaceContext());
+         NodeList webModules = (NodeList) xpath.evaluate("/javaee:application/javaee:module/javaee:web", 
+             new InputSource(new StringReader(applicationDD)), XPathConstants.NODESET);
+         
+         for (int i=0; i < webModules.getLength(); i++) {
+            Node webModule = webModules.item(i);
+            
+            String weburi="", contextroot="";
+            NodeList webModuleChildNodes = webModule.getChildNodes();
+            for (int j=0; j < webModuleChildNodes.getLength(); j++) {
+               Node webModuleChild = webModuleChildNodes.item(j);
+               if (webModuleChild.getNodeName().equals("web-uri"))
+                  weburi = webModuleChild.getTextContent();
+               if (webModuleChild.getNodeName().equals("context-root"))
+                  contextroot = webModuleChild.getTextContent();
+            }
+            
+            // Now look up the currentModule and figure out its servlets
+            
+            Set webmoduleObjectNameSet = adminClient.queryNames(
+                  new ObjectName("WebSphere:type=WebModule,name=" + weburi + ",*"), null);
+            if (webmoduleObjectNameSet.isEmpty())
+               throw new IllegalStateException("Unable to find web module in JMX: " + weburi);
+            
+            ObjectName webmoduleObjectName = (ObjectName)webmoduleObjectNameSet.iterator().next();
+            String webmoduleDD = (String)adminClient.getAttribute(webmoduleObjectName, "deploymentDescriptor");
+            
+            log.fine("webmoduleDD: " + webmoduleDD);
+   
+            xpath = XPathFactory.newInstance().newXPath();
+            xpath.setNamespaceContext(new JavaEENamespaceContext());
+            NodeList servletMappings = (NodeList) xpath.evaluate("/javaee:web-app/javaee:servlet-mapping",
+                new InputSource(new StringReader(webmoduleDD)), XPathConstants.NODESET);
+            
+            for (int j=0; j < servletMappings.getLength(); j++) {
+               Node servletMapping = servletMappings.item(j);
+               NodeList servletMappingChildNodes = servletMapping.getChildNodes();
+               String servletName = null;
+               for (int k=0; k < servletMappingChildNodes.getLength(); k++) {
+                  Node childNode = servletMappingChildNodes.item(k);
+                  if (childNode.getNodeName().equals("servlet-name"))
+                     servletName = childNode.getTextContent();
+               }
+               if (servletName != null) {
+                  log.fine("Adding servlet to context: " + servletName + ", " + contextroot);
+                  httpContext.add(new Servlet(servletName, contextroot));
+               } else {
+                  log.warning("Unable to find servlet-name in web-module " + weburi + " deployment descriptor");
+               }
+            }
+         }
+      } catch (Exception e) {
+         log.log(Level.SEVERE, "Error while processing the deployment descriptor", e);
+      }
+      
       metaData.addContext(httpContext);
 
       return metaData;
