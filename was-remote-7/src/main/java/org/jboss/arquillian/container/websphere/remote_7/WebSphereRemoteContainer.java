@@ -19,11 +19,15 @@ package org.jboss.arquillian.container.websphere.remote_7;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 import javax.jms.IllegalStateException;
+import javax.management.Attribute;
+import javax.management.AttributeList;
+import javax.management.InstanceNotFoundException;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
@@ -47,6 +51,10 @@ import com.ibm.websphere.management.application.AppManagement;
 import com.ibm.websphere.management.application.AppManagementProxy;
 import com.ibm.websphere.management.application.AppNotification;
 import com.ibm.websphere.management.application.client.AppDeploymentController;
+import com.ibm.websphere.management.configservice.ConfigServiceHelper;
+import com.ibm.websphere.management.configservice.ConfigServiceProxy;
+import com.ibm.websphere.management.exception.ConfigServiceException;
+import com.ibm.websphere.management.exception.ConnectorException;
 
 /**
  * WebSphereRemoteContainer
@@ -132,6 +140,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       String appExtension = createDeploymentExtension(archive.getName());
       
       File exportedArchiveLocation = null;
+      ProtocolMetaData metaData = null;
 
       try
       {
@@ -222,6 +231,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          } else {
             throw new IllegalStateException("Distribution of application did not succeed to all nodes.");
          }
+         
+         metaData = discoverProtocolMetaDataFromConfiguration(adminClient, 
+               serverMBean.getKeyProperty("node"),
+               serverMBean.getKeyProperty("process"));
       } 
       catch (Exception e) 
       {
@@ -234,16 +247,76 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
             exportedArchiveLocation.delete();
          }
       }
-
-      ProtocolMetaData metaData = new ProtocolMetaData();
-      
-   	HTTPContext httpContext = new HTTPContext(
-   			containerConfiguration.getRemoteServerAddress(),
-   			containerConfiguration.getRemoteServerHttpPort());
-      httpContext.add(new Servlet(ServletMethodExecutor.ARQUILLIAN_SERVLET_NAME, "arquillian-protocol"));
-      metaData.addContext(httpContext);
       
       return metaData;
+   }
+   
+   @SuppressWarnings("rawtypes")
+   private ProtocolMetaData discoverProtocolMetaDataFromConfiguration(AdminClient adminClient, String targetNode, String targetProcess) throws InstanceNotFoundException, ConnectorException, ConfigServiceException {
+      ProtocolMetaData metaData = new ProtocolMetaData();
+      String remoteServerAddress = null;
+      int remoteServerHttpPort = 0;
+      
+      ConfigServiceProxy configServiceProxy = new ConfigServiceProxy(adminClient);
+      
+      ObjectName nodeObjectName = ConfigServiceHelper.createObjectName(null, "Node");
+      ObjectName[] nodeObjectNames = configServiceProxy.queryConfigObjects(null, null, nodeObjectName, null);
+      ObjectName targetNodeObjectName = null;
+      
+      for (ObjectName node : nodeObjectNames) {
+         String nodeName = (String) configServiceProxy.getAttribute(null, node, "name");
+         if (nodeName.equals(targetNode)) {
+            targetNodeObjectName = node;
+            remoteServerAddress = (String) configServiceProxy.getAttribute(null, targetNodeObjectName, 
+                  "hostName");
+         }
+      }
+      
+      if (remoteServerAddress == null || targetNodeObjectName == null)
+         throw new InstanceNotFoundException("Target node " + targetNode + " was not found.");
+      
+      ObjectName serverEntries = ConfigServiceHelper.createObjectName(null, "ServerEntry");
+      ObjectName[] serverEntryObjectNames = configServiceProxy.queryConfigObjects(null, 
+            targetNodeObjectName, serverEntries, null);
+      
+      for (ObjectName serverEntry : serverEntryObjectNames) {
+         String serverName = (String) configServiceProxy.getAttribute(null, serverEntry, "serverName");
+         if (serverName.equals(targetProcess)) {
+            List specialEndpoints = (List) configServiceProxy.getAttribute(null, serverEntry, 
+                  "specialEndpoints");
+            remoteServerHttpPort = getEndpointPort(specialEndpoints, "WC_defaulthost");
+         }
+      }
+      
+      log.fine("Generating HTTPContext: " + remoteServerAddress + ", " + remoteServerHttpPort);
+      HTTPContext httpContext = new HTTPContext(remoteServerAddress, remoteServerHttpPort);
+      httpContext.add(new Servlet(ServletMethodExecutor.ARQUILLIAN_SERVLET_NAME, "arquillian-protocol"));
+      metaData.addContext(httpContext);
+
+      return metaData;
+   }
+
+   @SuppressWarnings("rawtypes")
+   private int getEndpointPort(List specialEndpoints, String endPointIdentifier) {
+      for (Object specialEndpoint : specialEndpoints) {
+         AttributeList specialEndpointAttributeList = (AttributeList)specialEndpoint;
+         String endPointName = (String)getAttributeByName(specialEndpointAttributeList, "endPointName");
+         if (endPointName.equals(endPointIdentifier)) {
+            AttributeList endpointAttributeList = 
+               (AttributeList)getAttributeByName(specialEndpointAttributeList, "endPoint");
+            return (Integer)getAttributeByName(endpointAttributeList, "port");
+         }
+      }
+      return 0;
+   }
+   
+   private Object getAttributeByName(AttributeList attrList, String name) {
+      for (Object attrObject : attrList) {
+         Attribute attr = (Attribute)attrObject;
+         if (attr.getName().equals(name))
+            return attr.getValue();
+      }
+      return null;
    }
 
    /*
