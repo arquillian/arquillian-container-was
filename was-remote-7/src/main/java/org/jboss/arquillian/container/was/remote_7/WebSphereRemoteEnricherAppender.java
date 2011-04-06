@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.websphere.remote_7;
+package org.jboss.arquillian.container.was.remote_7;
 
 import org.jboss.arquillian.spi.client.deployment.AuxiliaryArchiveAppender;
 import org.jboss.arquillian.spi.TestEnricher;

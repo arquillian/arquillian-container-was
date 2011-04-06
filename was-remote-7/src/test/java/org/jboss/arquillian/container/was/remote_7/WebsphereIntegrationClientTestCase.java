@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.websphere.remote_7;
+package org.jboss.arquillian.container.was.remote_7;
 
 import javax.ejb.EJB;
 
 import junit.framework.Assert;
 
 import org.jboss.arquillian.api.Deployment;
-import org.jboss.arquillian.container.websphere.remote_7.ejb.MyEjb;
-import org.jboss.arquillian.container.websphere.remote_7.ejb.MyEjbLocal;
+import org.jboss.arquillian.container.was.remote_7.ejb.MyEjb;
+import org.jboss.arquillian.container.was.remote_7.ejb.MyEjbLocal;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;

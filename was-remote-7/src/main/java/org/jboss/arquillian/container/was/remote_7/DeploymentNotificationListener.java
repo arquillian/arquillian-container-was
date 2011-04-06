@@ -1,4 +1,4 @@
-package org.jboss.arquillian.container.websphere.remote_7;
+package org.jboss.arquillian.container.was.remote_7;
 
 import java.util.Properties;
 import java.util.logging.Level;
