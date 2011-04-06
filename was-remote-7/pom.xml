@@ -4,10 +4,10 @@
 
 	<!-- Parent -->
 	<parent>
-		<groupId>org.jboss.arquillian</groupId>
-		<artifactId>arquillian-build</artifactId>
+		<groupId>org.jboss.arquillian.container</groupId>
+		<artifactId>arquillian-parent-was</artifactId>
 		<version>1.0.0-SNAPSHOT</version>
-		<relativePath>../../build/pom.xml</relativePath>
+		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<!-- Model Version -->
@@ -15,9 +15,9 @@
 
 	<!-- Artifact Configuration -->
 	<groupId>org.jboss.arquillian.container</groupId>
-	<artifactId>arquillian-websphere-remote-7</artifactId>
-	<name>Arquillian Container WebSphere Remote 7.x</name>
-	<description>WebSphere 7.x Remote Container integration for the Arquillian Project</description>
+	<artifactId>arquillian-was-remote-7</artifactId>
+	<name>Arquillian Container WebSphere AS Remote 7.x</name>
+	<description>WebSphere AS 7.x Remote Container integration for the Arquillian Project</description>
 
 
 	<!-- Properties -->
