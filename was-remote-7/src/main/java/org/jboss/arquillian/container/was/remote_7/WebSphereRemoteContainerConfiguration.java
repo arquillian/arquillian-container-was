@@ -31,8 +31,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    private String remoteServerAddress = "localhost";
    private Integer remoteServerSoapPort = 8880;
    
-   private Integer remoteServerHttpPort = 9080;
-   
    private boolean securityEnabled = false;
 
    private String username = "admin";
@@ -81,22 +79,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    public void setRemoteServerSoapPort(Integer remoteServerSoapPort)
    {
       this.remoteServerSoapPort = remoteServerSoapPort;
-   }
-
-   /**
-    * @return the remoteServerHttpPort
-    */
-   public Integer getRemoteServerHttpPort()
-   {
-      return remoteServerHttpPort;
-   }
-
-   /**
-    * @param remoteServerHttpPort the remoteServerHttpPort to set
-    */
-   public void setRemoteServerHttpPort(Integer remoteServerHttpPort)
-   {
-      this.remoteServerHttpPort = remoteServerHttpPort;
    }
 
    public void setSecurityEnabled(boolean securityEnabled) {
