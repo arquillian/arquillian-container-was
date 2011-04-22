@@ -23,6 +23,7 @@ import junit.framework.Assert;
 import org.jboss.arquillian.api.Deployment;
 import org.jboss.arquillian.container.was.remote_7.ejb.MyEjb;
 import org.jboss.arquillian.container.was.remote_7.ejb.MyEjbLocal;
+import org.jboss.arquillian.container.was.remote_7.ejb.MyEjbRemote;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
@@ -46,20 +47,34 @@ public class WebsphereIntegrationClientTestCase
                   .addAsModule(ShrinkWrap.create(JavaArchive.class, "test.jar")
                                     .addClass(MyEjb.class)
                                     .addClass(MyEjbLocal.class)
+                                    .addClass(MyEjbRemote.class)
                                     .addClass(WebsphereIntegrationClientTestCase.class));
    }
    
    @EJB
-   private MyEjbLocal instanceVariable;
+   private MyEjbLocal localInstanceVariable;
+   
+   @EJB
+   private MyEjbRemote remoteInstanceVariable;
    
    @Test
-   public void shouldBeAbleToInjectEJBAsInstanceVariable() throws Exception 
+   public void shouldBeAbleToInjectLocalEJBAsInstanceVariable() throws Exception 
    {
       Assert.assertNotNull(
-            "Verify that the Bean has been injected",
-            instanceVariable);
+            "Verify that the local Bean has been injected",
+            localInstanceVariable);
       
-      Assert.assertEquals("aslak", instanceVariable.getName());
+      Assert.assertEquals("aslak", localInstanceVariable.getName());
+   }
+   
+   @Test
+   public void shouldBeAbleToInjectRemoteEJBAsInstanceVariable() throws Exception
+   {
+      Assert.assertNotNull(
+            "Verify that the remote Bean has been injected",
+            remoteInstanceVariable);
+      
+      Assert.assertEquals("aslak", remoteInstanceVariable.getName());
    }
 
 }
