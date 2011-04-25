@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2009, Red Hat Middleware LLC, and individual contributors
+ * Copyright 2009-2011, Red Hat Middleware LLC, and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -30,8 +30,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
 {
    private String remoteServerAddress = "localhost";
    private Integer remoteServerSoapPort = 8880;
-   
-   private Integer remoteServerHttpPort = 9080;
    
    private boolean securityEnabled = false;
 
@@ -81,22 +79,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    public void setRemoteServerSoapPort(Integer remoteServerSoapPort)
    {
       this.remoteServerSoapPort = remoteServerSoapPort;
-   }
-
-   /**
-    * @return the remoteServerHttpPort
-    */
-   public Integer getRemoteServerHttpPort()
-   {
-      return remoteServerHttpPort;
-   }
-
-   /**
-    * @param remoteServerHttpPort the remoteServerHttpPort to set
-    */
-   public void setRemoteServerHttpPort(Integer remoteServerHttpPort)
-   {
-      this.remoteServerHttpPort = remoteServerHttpPort;
    }
 
    public void setSecurityEnabled(boolean securityEnabled) {

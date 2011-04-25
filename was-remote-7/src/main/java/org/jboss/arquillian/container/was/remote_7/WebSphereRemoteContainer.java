@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2009, Red Hat Middleware LLC, and individual contributors
+ * Copyright 2009-2011, Red Hat Middleware LLC, and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -46,8 +46,14 @@ import org.jboss.arquillian.spi.client.protocol.metadata.HTTPContext;
 import org.jboss.arquillian.spi.client.protocol.metadata.ProtocolMetaData;
 import org.jboss.arquillian.spi.client.protocol.metadata.Servlet;
 import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
+import org.jboss.shrinkwrap.descriptor.api.Descriptors;
+import org.jboss.shrinkwrap.descriptor.api.spec.ee.application.ApplicationDescriptor;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -149,11 +155,34 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       
       File exportedArchiveLocation = null;
       ProtocolMetaData metaData = null;
+      EnterpriseArchive deploymentArchive = null;
+      
+      // Create an EAR file from the provided Archive that can be processed by AppDeploymentController
+      if (WebArchive.class.isInstance(archive)) {
+         // Packaging a single WAR file into an EAR
+         String earName = archive.getName().substring(0, archive.getName().lastIndexOf("."));
+         log.fine("Creating an EnterpriseArchive " + earName + ".ear from provided WebArchive " + archive.getName() + ".");
 
+         // Create ShrinkWrap EnterpriseArchive and add the WAR file as a module
+         deploymentArchive = ShrinkWrap.create(EnterpriseArchive.class, earName + ".ear")
+            .addAsModule(archive);
+
+         // Generate the application.xml DD and add it to the EAR
+         ApplicationDescriptor appDescriptor = Descriptors.create(ApplicationDescriptor.class);
+         appDescriptor.webModule(archive.getName(), earName);
+         deploymentArchive.setApplicationXML(
+               new StringAsset(appDescriptor.exportAsString()));
+      } else if (EnterpriseArchive.class.isInstance(archive)){
+         // Use the provided EnterpriseArchive as-is
+         deploymentArchive = (EnterpriseArchive) archive;
+      } else {
+         throw new DeploymentException("Unsupported archive type has been provided for deployment: " + archive.getClass().getName());
+      }
+      
       try
       {
          exportedArchiveLocation = File.createTempFile(appName, appExtension);
-         archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
+         deploymentArchive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
          
          Hashtable<Object, Object> prefs = new Hashtable<Object, Object>();
          
@@ -352,8 +381,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
                String servletName = null;
                for (int k=0; k < servletMappingChildNodes.getLength(); k++) {
                   Node childNode = servletMappingChildNodes.item(k);
-                  if (childNode.getNodeName().equals("servlet-name"))
-                     servletName = childNode.getTextContent();
+                  if (childNode.getNodeName().equals("url-pattern"))
+                     servletName = childNode.getTextContent().replaceFirst("/", "");
                }
                if (servletName != null) {
                   log.fine("Adding servlet to context: " + servletName + ", " + contextroot);

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2009, Red Hat Middleware LLC, and individual contributors
+ * Copyright 2009, 2011, Red Hat Middleware LLC, and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -16,7 +16,7 @@
  */
 package org.jboss.arquillian.container.was.remote_7.ejb;
 
-import javax.ejb.Stateless;
+import javax.ejb.Remote;
 
 /**
  * MyEjb
@@ -24,11 +24,8 @@ import javax.ejb.Stateless;
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
  */
-@Stateless
-public class MyEjb implements MyEjbLocal, MyEjbRemote
+@Remote
+public interface MyEjbRemote
 {
-   public String getName() 
-   {
-      return "aslak";
-   }
+   public String getName();
 }
