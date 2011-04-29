@@ -264,6 +264,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          if (checkCount < 300)
          {
             String targetsStarted = appManagementProxy.startApplication(appName, null, null);
+            if (targetsStarted == null)
+               throw new IllegalStateException("Start of the application was not successful. WAS JVM logs should contain the detailed error message.");
             log.info("Application was started on the following targets: " + targetsStarted);
          } else {
             throw new IllegalStateException("Distribution of application did not succeed to all nodes.");
