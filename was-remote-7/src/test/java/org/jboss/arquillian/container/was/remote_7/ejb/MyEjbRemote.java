@@ -19,7 +19,7 @@ package org.jboss.arquillian.container.was.remote_7.ejb;
 import javax.ejb.Remote;
 
 /**
- * MyEjb
+ * MyEjbRemote
  *
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
