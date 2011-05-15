@@ -21,9 +21,23 @@
    <description>WebSphere AS Container integrations for the Arquillian Project</description>
 
 
-   <!-- Properties -->
-   <properties>
-   </properties>
+	<!-- Properties -->
+	<properties>
+		<!-- Versioning -->
+		<version.arquillian_core>1.0.0-SNAPSHOT</version.arquillian_core>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.jboss.arquillian</groupId>
+				<artifactId>arquillian-bom</artifactId>
+				<version>${version.arquillian_core}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
    <modules>
       <module>was-remote-7</module>
