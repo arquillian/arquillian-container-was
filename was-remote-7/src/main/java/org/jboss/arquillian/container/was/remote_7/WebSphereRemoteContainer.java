@@ -83,7 +83,9 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    // Instance Members -------------------------------------------------------------------||
    //-------------------------------------------------------------------------------------||
    
-   private static Logger log = Logger.getLogger(WebSphereRemoteContainer.class.getName());
+   private static final String className = WebSphereRemoteContainer.class.getName();
+   
+   private static Logger log = Logger.getLogger(className);
    
    private WebSphereRemoteContainerConfiguration containerConfiguration;
 
@@ -98,7 +100,15 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void setup(WebSphereRemoteContainerConfiguration configuration)
    {
-	   this.containerConfiguration = configuration;
+      if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "setup");
+      }
+	   
+      this.containerConfiguration = configuration;
+	   
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "setup");
+      }
    }
 
    /* (non-Javadoc)
@@ -106,6 +116,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void start() throws LifecycleException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "start");
+      }
+      
       Properties wasServerProps = new Properties();
       wasServerProps.setProperty(AdminClient.CONNECTOR_HOST, containerConfiguration.getRemoteServerAddress());
       wasServerProps.setProperty(AdminClient.CONNECTOR_PORT, String.valueOf(containerConfiguration.getRemoteServerSoapPort()));
@@ -143,6 +157,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       {
          throw new LifecycleException("Could not create AdminClient: " + e.getMessage(), e);
       }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "start");
+      }
    }
 
    /* (non-Javadoc)
@@ -150,6 +168,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public ProtocolMetaData deploy(final Archive<?> archive) throws DeploymentException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "deploy");
+      }
+      
       String appName = createDeploymentName(archive.getName());
       String appExtension = createDeploymentExtension(archive.getName());
       
@@ -286,6 +308,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          {  
             exportedArchiveLocation.delete();
          }
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "deploy");
       }
       
       return metaData;
@@ -472,6 +498,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void undeploy(final Archive<?> archive) throws DeploymentException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "undeploy");
+      }
+      
       String appName = createDeploymentName(archive.getName());
       
       try
@@ -515,6 +545,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       {
          throw new DeploymentException("Could not undeploy application", e);
       }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "undeploy");
+      }
    }
 
    /* (non-Javadoc)
@@ -522,6 +556,13 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void stop() throws LifecycleException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "stop");
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "stop");
+      }
    }
 
    //-------------------------------------------------------------------------------------||
@@ -544,6 +585,14 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
 	}
 	
 	public ProtocolDescription getDefaultProtocol() {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "getDefaultProtocol");
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "getDefaultProtocol");
+      }
+      
 		return new ProtocolDescription("Servlet 2.5");
 	}
 	
