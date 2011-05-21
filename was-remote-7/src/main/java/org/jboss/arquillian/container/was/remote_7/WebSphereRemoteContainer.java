@@ -51,6 +51,7 @@ import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 import org.jboss.shrinkwrap.descriptor.api.Descriptors;
 import org.jboss.shrinkwrap.descriptor.api.spec.ee.application.ApplicationDescriptor;
@@ -170,6 +171,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    {
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "deploy");
+         
+         log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
       
       String appName = createDeploymentName(archive.getName());
@@ -224,6 +227,12 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          }
          
          controller.saveAndClose();
+         
+         if (log.isLoggable(Level.FINER)) {
+            // Log the contents of the saved archive from AppDeploymentController
+            Archive<JavaArchive> savedArchive = ShrinkWrap.createFromZipFile(JavaArchive.class, exportedArchiveLocation);
+            log.finer("Archive prepared for deployment: " + savedArchive.toString(true));            
+         }
          
          Hashtable<Object, Object> module2Server = new Hashtable<Object, Object>();
          ObjectName serverMBean = adminClient.getServerMBean();
