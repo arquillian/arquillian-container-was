@@ -175,9 +175,6 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
       
-      String appName = createDeploymentName(archive.getName());
-      String appExtension = createDeploymentExtension(archive.getName());
-      
       File exportedArchiveLocation = null;
       ProtocolMetaData metaData = null;
       EnterpriseArchive deploymentArchive = null;
@@ -203,6 +200,9 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       } else {
          throw new DeploymentException("Unsupported archive type has been provided for deployment: " + archive.getClass().getName());
       }
+
+      String appName = createDeploymentName(deploymentArchive.getName());
+      String appExtension = createDeploymentExtension(deploymentArchive.getName());
       
       try
       {
