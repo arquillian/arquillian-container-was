@@ -38,19 +38,20 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
-import org.jboss.arquillian.spi.client.container.DeployableContainer;
-import org.jboss.arquillian.spi.client.container.DeploymentException;
-import org.jboss.arquillian.spi.client.container.LifecycleException;
-import org.jboss.arquillian.spi.client.protocol.ProtocolDescription;
-import org.jboss.arquillian.spi.client.protocol.metadata.HTTPContext;
-import org.jboss.arquillian.spi.client.protocol.metadata.ProtocolMetaData;
-import org.jboss.arquillian.spi.client.protocol.metadata.Servlet;
+import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
+import org.jboss.arquillian.container.spi.client.container.DeploymentException;
+import org.jboss.arquillian.container.spi.client.container.LifecycleException;
+import org.jboss.arquillian.container.spi.client.protocol.ProtocolDescription;
+import org.jboss.arquillian.container.spi.client.protocol.metadata.HTTPContext;
+import org.jboss.arquillian.container.spi.client.protocol.metadata.ProtocolMetaData;
+import org.jboss.arquillian.container.spi.client.protocol.metadata.Servlet;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 import org.jboss.shrinkwrap.descriptor.api.Descriptors;
 import org.jboss.shrinkwrap.descriptor.api.spec.ee.application.ApplicationDescriptor;
@@ -83,7 +84,9 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
    // Instance Members -------------------------------------------------------------------||
    //-------------------------------------------------------------------------------------||
    
-   private static Logger log = Logger.getLogger(WebSphereRemoteContainer.class.getName());
+   private static final String className = WebSphereRemoteContainer.class.getName();
+   
+   private static Logger log = Logger.getLogger(className);
    
    private WebSphereRemoteContainerConfiguration containerConfiguration;
 
@@ -98,7 +101,15 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void setup(WebSphereRemoteContainerConfiguration configuration)
    {
-	   this.containerConfiguration = configuration;
+      if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "setup");
+      }
+	   
+      this.containerConfiguration = configuration;
+	   
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "setup");
+      }
    }
 
    /* (non-Javadoc)
@@ -106,6 +117,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void start() throws LifecycleException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "start");
+      }
+      
       Properties wasServerProps = new Properties();
       wasServerProps.setProperty(AdminClient.CONNECTOR_HOST, containerConfiguration.getRemoteServerAddress());
       wasServerProps.setProperty(AdminClient.CONNECTOR_PORT, String.valueOf(containerConfiguration.getRemoteServerSoapPort()));
@@ -143,6 +158,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       {
          throw new LifecycleException("Could not create AdminClient: " + e.getMessage(), e);
       }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "start");
+      }
    }
 
    /* (non-Javadoc)
@@ -150,8 +169,11 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public ProtocolMetaData deploy(final Archive<?> archive) throws DeploymentException
    {
-      String appName = createDeploymentName(archive.getName());
-      String appExtension = createDeploymentExtension(archive.getName());
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "deploy");
+         
+         log.finer("Archive provided to deploy method: " + archive.toString(true));
+      }
       
       File exportedArchiveLocation = null;
       ProtocolMetaData metaData = null;
@@ -178,6 +200,9 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       } else {
          throw new DeploymentException("Unsupported archive type has been provided for deployment: " + archive.getClass().getName());
       }
+
+      String appName = createDeploymentName(deploymentArchive.getName());
+      String appExtension = createDeploymentExtension(deploymentArchive.getName());
       
       try
       {
@@ -202,6 +227,12 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          }
          
          controller.saveAndClose();
+         
+         if (log.isLoggable(Level.FINER)) {
+            // Log the contents of the saved archive from AppDeploymentController
+            Archive<JavaArchive> savedArchive = ShrinkWrap.createFromZipFile(JavaArchive.class, exportedArchiveLocation);
+            log.finer("Archive prepared for deployment: " + savedArchive.toString(true));            
+         }
          
          Hashtable<Object, Object> module2Server = new Hashtable<Object, Object>();
          ObjectName serverMBean = adminClient.getServerMBean();
@@ -265,6 +296,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          {
             String targetsStarted = appManagementProxy.startApplication(appName, null, null);
             log.info("Application was started on the following targets: " + targetsStarted);
+            if (targetsStarted == null)
+               throw new IllegalStateException("Start of the application was not successful. WAS JVM logs should contain the detailed error message.");
          } else {
             throw new IllegalStateException("Distribution of application did not succeed to all nodes.");
          }
@@ -284,6 +317,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          {  
             exportedArchiveLocation.delete();
          }
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "deploy");
       }
       
       return metaData;
@@ -470,6 +507,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void undeploy(final Archive<?> archive) throws DeploymentException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "undeploy");
+      }
+      
       String appName = createDeploymentName(archive.getName());
       
       try
@@ -513,6 +554,10 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       {
          throw new DeploymentException("Could not undeploy application", e);
       }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "undeploy");
+      }
    }
 
    /* (non-Javadoc)
@@ -520,6 +565,13 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
     */
    public void stop() throws LifecycleException
    {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "stop");
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "stop");
+      }
    }
 
    //-------------------------------------------------------------------------------------||
@@ -542,6 +594,14 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
 	}
 	
 	public ProtocolDescription getDefaultProtocol() {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "getDefaultProtocol");
+      }
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "getDefaultProtocol");
+      }
+      
 		return new ProtocolDescription("Servlet 2.5");
 	}
 	
