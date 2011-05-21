@@ -6,7 +6,7 @@
         <parent>
                 <groupId>org.jboss.arquillian</groupId>
                 <artifactId>arquillian-build</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <version>1.0.0.CR1-SNAPSHOT</version>
         </parent>
    
    <!-- Model Version -->
@@ -15,7 +15,7 @@
    <!-- Artifact Configuration -->
    <groupId>org.jboss.arquillian.container</groupId>
    <artifactId>arquillian-parent-was</artifactId>
-   <version>1.0.0-SNAPSHOT</version>
+   <version>1.0.0.CR1-SNAPSHOT</version>
    <packaging>pom</packaging>
    <name>Arquillian Container Parent WebSphere AS</name>
    <description>WebSphere AS Container integrations for the Arquillian Project</description>
@@ -24,7 +24,7 @@
 	<!-- Properties -->
 	<properties>
 		<!-- Versioning -->
-		<version.arquillian_core>1.0.0-SNAPSHOT</version.arquillian_core>
+		<version.arquillian_core>1.0.0.CR1-SNAPSHOT</version.arquillian_core>
 	</properties>
 
 	<dependencyManagement>

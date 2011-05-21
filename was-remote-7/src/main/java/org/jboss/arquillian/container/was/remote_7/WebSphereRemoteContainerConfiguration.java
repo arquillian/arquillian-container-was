@@ -16,9 +16,9 @@
  */
 package org.jboss.arquillian.container.was.remote_7;
 
-import org.jboss.arquillian.spi.ConfigurationException;
-import org.jboss.arquillian.spi.ContainerProfile;
-import org.jboss.arquillian.spi.client.container.ContainerConfiguration;
+import org.jboss.arquillian.container.spi.ConfigurationException;
+import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
+import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
  * WebSphereRemoteConfiguraiton

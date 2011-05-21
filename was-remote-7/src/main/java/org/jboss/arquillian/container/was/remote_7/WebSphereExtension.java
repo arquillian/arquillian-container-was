@@ -17,8 +17,8 @@
  */
 package org.jboss.arquillian.container.was.remote_7;
 
+import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.core.spi.LoadableExtension;
-import org.jboss.arquillian.spi.client.container.DeployableContainer;
 
 /**
  * WebSphereExtension

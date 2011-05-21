@@ -20,7 +20,7 @@ import javax.ejb.EJB;
 
 import junit.framework.Assert;
 
-import org.jboss.arquillian.api.Deployment;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.was.remote_7.ejb.MyEjb;
 import org.jboss.arquillian.container.was.remote_7.ejb.MyEjbLocal;
 import org.jboss.arquillian.container.was.remote_7.ejb.MyEjbRemote;
