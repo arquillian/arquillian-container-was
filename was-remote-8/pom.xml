@@ -14,15 +14,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- Artifact Configuration -->
-    <artifactId>arquillian-was-remote-7</artifactId>
-    <name>Arquillian Container WebSphere AS Remote 7.x</name>
-    <description>WebSphere AS 7.x Remote Container integration for the Arquillian Project</description>
+    <artifactId>arquillian-was-remote-8</artifactId>
+    <name>Arquillian Container WebSphere AS Remote 8.x</name>
+    <description>WebSphere AS 8.x Remote Container integration for the Arquillian Project</description>
 
 
     <!-- Properties -->
 
     <properties>
-        <was_home>${env.WAS7_HOME}</was_home>
+        <was_home>${env.WAS8_HOME}</was_home>
         <version.ejb_api>3.1.0</version.ejb_api>
     </properties>
 
@@ -91,7 +91,7 @@
         <dependency>
             <groupId>com.ibm.websphere</groupId>
             <artifactId>was-public</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.0</version>
             <scope>system</scope>
             <systemPath>${was_home}/dev/was_public.jar</systemPath>
         </dependency>
@@ -122,15 +122,15 @@
         <dependency>
             <groupId>com.ibm.websphere</groupId>
             <artifactId>ws-admin-client</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.0</version>
             <scope>system</scope>
-            <systemPath>${was_home}/runtimes/com.ibm.ws.admin.client_7.0.0.jar</systemPath>
+            <systemPath>${was_home}/runtimes/com.ibm.ws.admin.client_8.0.0.jar</systemPath>
         </dependency>
 
         <dependency>
             <groupId>com.ibm.websphere</groupId>
             <artifactId>jgss-provider</artifactId>
-            <version>7.0.0</version>
+            <version>8.0.0</version>
             <scope>system</scope>
             <systemPath>${was_home}/java/jre/lib/ibmjgssprovider.jar</systemPath>
         </dependency>
