@@ -90,10 +90,18 @@
 
         <dependency>
             <groupId>com.ibm.websphere</groupId>
-            <artifactId>was-j2ee</artifactId>
+            <artifactId>was-embeddableContainer</artifactId>
             <version>8.0.0</version>
             <scope>system</scope>
-            <systemPath>${was_home}/dev/JavaEE/j2ee.jar</systemPath>
+            <systemPath>${was_home}/runtimes/com.ibm.ws.ejb.embeddableContainer_8.0.0.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ibm.websphere</groupId>
+            <artifactId>was-endorsedAPIs</artifactId>
+            <version>8.0.0</version>
+            <scope>system</scope>
+            <systemPath>${was_home}/runtimes/endorsed/endorsed_apis_8.0.0.jar</systemPath>
         </dependency>
 
         <!-- Testing -->

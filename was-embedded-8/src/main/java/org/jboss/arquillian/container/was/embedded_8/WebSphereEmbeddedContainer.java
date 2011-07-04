@@ -16,15 +16,25 @@
  */
 package org.jboss.arquillian.container.was.embedded_8;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.ejb.embeddable.EJBContainer;
+import javax.naming.Context;
 
 import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.container.spi.client.container.DeploymentException;
 import org.jboss.arquillian.container.spi.client.container.LifecycleException;
 import org.jboss.arquillian.container.spi.client.protocol.ProtocolDescription;
 import org.jboss.arquillian.container.spi.client.protocol.metadata.ProtocolMetaData;
+import org.jboss.arquillian.container.spi.context.annotation.ContainerScoped;
+import org.jboss.arquillian.core.api.InstanceProducer;
+import org.jboss.arquillian.core.api.annotation.Inject;
 import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 
 /**
@@ -44,6 +54,15 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
    private static Logger log = Logger.getLogger(className);
    
    private WebSphereEmbeddedContainerConfiguration containerConfiguration;
+   
+   private EJBContainer ec;
+   
+   /**
+    * The JNDI Context for this container.
+    */
+   @Inject
+   @ContainerScoped
+   private InstanceProducer<Context> jndiContext;
 
    //-------------------------------------------------------------------------------------||
    // Required Implementations - DeployableContainer -------------------------------------||
@@ -68,7 +87,7 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
          log.entering(className, "start");
       }
       
-      // TODO stuff
+      // There should be nothing to do here.
       
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "start");
@@ -83,7 +102,26 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
          log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
       
-      // TODO stuff
+      // Save the archive to disk so it can be loaded by the container.
+      // For JNDI lookups to work correctly the archive name must match the
+      // one of the provided archive file.
+      String tmpDir = System.getProperty("java.io.tmpdir");
+      File exportedArchiveLocation = new File(tmpDir, archive.getName());
+      archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
+      
+      // Create the properties object to pass to the embeddable container:
+      Map<String,Object> props = new HashMap<String,Object>();
+
+      // Specify the EJB modules to start when creating the container:
+      File[] ejbModules = new File[1];
+      ejbModules[0] = exportedArchiveLocation;
+      props.put(EJBContainer.MODULES, ejbModules);
+      
+      // Start the Embeddable Container
+      ec = EJBContainer.createEJBContainer(props);
+      
+      // Set the JNDI Context
+      jndiContext.set(ec.getContext());
       
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "deploy");
@@ -98,7 +136,8 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
          log.entering(className, "undeploy");
       }
       
-      // TODO stuff
+      // Close the Embeddable Container
+      ec.close();
       
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "undeploy");
@@ -110,6 +149,8 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "stop");
       }
+
+      // There should be nothing to do here.
       
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "stop");
@@ -125,12 +166,12 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
          log.exiting(className, "getDefaultProtocol");
       }
       
-		return new ProtocolDescription("local");
+		return new ProtocolDescription("Local");
 	}
 
+	@Override
    public Class<WebSphereEmbeddedContainerConfiguration> getConfigurationClass() {
-      // TODO Auto-generated method stub
-      return null;
+      return WebSphereEmbeddedContainerConfiguration.class;
    }
 
    public void deploy(Descriptor descriptor) throws DeploymentException {
