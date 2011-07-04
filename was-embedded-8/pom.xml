@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <!-- Parent -->
+    <parent>
+        <groupId>org.jboss.arquillian.container</groupId>
+        <artifactId>arquillian-parent-was</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <!-- Model Version -->
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Artifact Configuration -->
+    <artifactId>arquillian-was-embedded-8</artifactId>
+    <name>Arquillian Container WebSphere AS Embedded 8.x</name>
+    <description>WebSphere AS 8.x Embedded Container integration for the Arquillian Project</description>
+
+
+    <!-- Properties -->
+
+    <properties>
+        <was_home>${env.WAS8_HOME}</was_home>
+        <version.ejb_api>3.1.0</version.ejb_api>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>build-server</id>
+            <properties>
+                <was_home>${WAS_HOME}</was_home>
+            </properties>
+        </profile>
+    </profiles>
+
+
+    <!-- Build -->
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                    <systemProperties>
+                        <property>
+                            <name>java.util.logging.config.file</name>
+                            <value>${basedir}/src/test/resources/logging.properties</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Dependencies -->
+    <dependencies>
+
+        <!-- org.jboss.arquillian -->
+        <dependency>
+            <groupId>org.jboss.arquillian.container</groupId>
+            <artifactId>arquillian-container-spi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.container</groupId>
+            <artifactId>arquillian-container-test-spi</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.protocol</groupId>
+            <artifactId>arquillian-protocol-servlet</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.arquillian.testenricher</groupId>
+            <artifactId>arquillian-testenricher-ejb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.testenricher</groupId>
+            <artifactId>arquillian-testenricher-resource</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.arquillian.testenricher</groupId>
+            <artifactId>arquillian-testenricher-initialcontext</artifactId>
+        </dependency>
+
+        <!-- com.ibm.websphere -->
+
+        <dependency>
+            <groupId>com.ibm.websphere</groupId>
+            <artifactId>was-j2ee</artifactId>
+            <version>8.0.0</version>
+            <scope>system</scope>
+            <systemPath>${was_home}/dev/JavaEE/j2ee.jar</systemPath>
+        </dependency>
+
+        <!-- Testing -->
+
+        <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+</project>
+
