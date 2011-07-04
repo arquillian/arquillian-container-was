@@ -21,7 +21,7 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
 import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
- * WebSphereRemoteConfiguraiton
+ * WebSphereRemoteConfiguration
  *
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
