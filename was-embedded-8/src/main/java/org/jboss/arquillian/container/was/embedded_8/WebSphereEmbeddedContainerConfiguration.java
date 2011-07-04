@@ -16,6 +16,8 @@
  */
 package org.jboss.arquillian.container.was.embedded_8;
 
+import java.io.File;
+
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
 
@@ -27,10 +29,24 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
  */
 public class WebSphereEmbeddedContainerConfiguration implements
       ContainerConfiguration {
+   
+   private String embeddedProperties;
 
+   @Override
    public void validate() throws ConfigurationException {
-      // TODO Auto-generated method stub
+      if (embeddedProperties != null) {
+         if (!new File(embeddedProperties).canRead()) {
+            throw new ConfigurationException("Cannot access the embeddedProperties file " + embeddedProperties);
+         }
+      }
+   }
 
+   public String getEmbeddedProperties() {
+      return embeddedProperties;
+   }
+
+   public void setEmbeddedProperties(String embeddedProperties) {
+      this.embeddedProperties = embeddedProperties;
    }
 
 }

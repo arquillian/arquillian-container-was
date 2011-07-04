@@ -50,6 +50,10 @@
                             <name>java.util.logging.config.file</name>
                             <value>${basedir}/src/test/resources/logging.properties</value>
                         </property>
+                        <!-- <property>
+                        	<name>com.ibm.websphere.embeddable.configFileName</name>
+                        	<value>${basedir}/src/test/resources/was-embedded.properties</value>
+                        </property> -->
                     </systemProperties>
                 </configuration>
             </plugin>

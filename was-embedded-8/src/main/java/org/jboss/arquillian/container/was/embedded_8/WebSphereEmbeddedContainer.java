@@ -111,6 +111,11 @@ public class WebSphereEmbeddedContainer implements DeployableContainer<WebSphere
       
       // Create the properties object to pass to the embeddable container:
       Map<String,Object> props = new HashMap<String,Object>();
+      
+      // Set the embeddable container configuration file if it has been
+      // provided in the arquillian configuration.
+      if (containerConfiguration.getEmbeddedProperties() != null)
+         props.put("com.ibm.websphere.embeddable.configFileName", containerConfiguration.getEmbeddedProperties());
 
       // Specify the EJB modules to start when creating the container:
       File[] ejbModules = new File[1];
