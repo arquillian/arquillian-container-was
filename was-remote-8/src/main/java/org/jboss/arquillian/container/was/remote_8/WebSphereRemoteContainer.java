@@ -602,7 +602,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          log.exiting(className, "getDefaultProtocol");
       }
       
-		return new ProtocolDescription("Servlet 2.5");
+		return new ProtocolDescription("Servlet 3.0");
 	}
 	
 	public void deploy(Descriptor descriptor) throws DeploymentException {
