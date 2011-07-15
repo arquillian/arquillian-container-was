@@ -30,7 +30,7 @@
         <profile>
             <id>build-server</id>
             <properties>
-                <was_home>${WAS_HOME}</was_home>
+                <was_home>${WAS7_HOME}</was_home>
             </properties>
         </profile>
     </profiles>
