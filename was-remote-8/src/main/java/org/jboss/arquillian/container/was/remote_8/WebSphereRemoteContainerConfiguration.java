@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.remote_7;
+package org.jboss.arquillian.container.was.remote_8;
 
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
 import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
- * WebSphereRemoteConfiguration
+ * WebSphereRemoteConfiguraiton
  *
  * @author <a href="mailto:aslak@redhat.com">Aslak Knutsen</a>
  * @version $Revision: $
