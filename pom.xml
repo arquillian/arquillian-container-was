@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>6-beta-2</version>
+        <version>8</version>
         <relativePath />
     </parent>
 
@@ -26,6 +26,11 @@
     <properties>
         <!-- Versioning -->
         <version.arquillian_core>1.0.0.CR1-SNAPSHOT</version.arquillian_core>
+
+        <!-- override from parent -->
+        <maven.compiler.argument.target>1.5</maven.compiler.argument.target>
+        <maven.compiler.argument.source>1.5</maven.compiler.argument.source>
+
     </properties>
 
     <dependencyManagement>
@@ -49,17 +54,11 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <inherited>true</inherited>
+                <artifactId>maven-release-plugin</artifactId>
                 <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
-                    <showDeprecation>false</showDeprecation>
-                    <showWarnings>true</showWarnings>
-                    <optimize>true</optimize>
-                    <compilerVersion>1.6</compilerVersion>
-                    <fork>true</fork>
-                    <argLine>-Xmx512M</argLine>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <pushChanges>false</pushChanges>
+                    <localCheckout>true</localCheckout>
                 </configuration>
             </plugin>
         </plugins>
