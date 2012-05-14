@@ -86,6 +86,16 @@
             <artifactId>arquillian-testenricher-initialcontext</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+            <artifactId>shrinkwrap-descriptors-api-javaee</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+            <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- com.ibm.websphere -->
 
         <dependency>

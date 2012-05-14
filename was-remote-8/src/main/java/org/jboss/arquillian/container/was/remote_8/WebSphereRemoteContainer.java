@@ -54,7 +54,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 import org.jboss.shrinkwrap.descriptor.api.Descriptors;
-import org.jboss.shrinkwrap.descriptor.api.spec.ee.application.ApplicationDescriptor;
+import org.jboss.shrinkwrap.descriptor.api.application6.ApplicationDescriptor;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -191,7 +191,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
 
          // Generate the application.xml DD and add it to the EAR
          ApplicationDescriptor appDescriptor = Descriptors.create(ApplicationDescriptor.class);
-         appDescriptor.webModule(archive.getName(), earName);
+         appDescriptor.createModule().getOrCreateWeb().webUri(archive.getName()).contextRoot(earName);
          deploymentArchive.setApplicationXML(
                new StringAsset(appDescriptor.exportAsString()));
       } else if (EnterpriseArchive.class.isInstance(archive)){
