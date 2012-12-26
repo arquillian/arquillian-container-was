@@ -18,6 +18,7 @@ package org.jboss.arquillian.container.was.wlp_managed_85;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,7 +41,6 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 
-import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 
@@ -62,6 +62,10 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    
    private MBeanServerConnection mbsc;
    
+   private Process wlpProcess;
+   
+   private Thread shutdownThread;
+   
    public void setup(WLPManagedContainerConfiguration configuration)
    {
       if (log.isLoggable(Level.FINER)) {
@@ -75,6 +79,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
    }
 
+   // This method includes parts heavily based on the ManagedDeployableContainer.java in the jboss-as
+   // managed container implementation as written by Thomas.Diesler@jboss.com
    public void start() throws LifecycleException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -82,23 +88,80 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
 
       // Find WebSphere Liberty Profile VMs by looking for ws-launch.jar and the name of the server
-      String vmid = findVirtualMachineIdByName("ws-launch.jar " + containerConfiguration.getServerName());
-      if (vmid == null)
-         throw new LifecycleException("Unable to find virtual machine for serverName");
-      
+      String vmid;
       VirtualMachine wlpvm = null;
       String serviceURL = null;
-      
+
       try {
-         wlpvm = VirtualMachine.attach(vmid);
-         
-         serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
-         if (serviceURL == null)
-            throw new LifecycleException("Unable to retrieve connector address for localConnector");
-      } catch (AttachNotSupportedException e) {
-         throw new LifecycleException("Attaching to the localConnector's agent failed", e);
-      } catch (IOException e) {
-         throw new LifecycleException("Attaching to the localConnector's agent failed", e);
+         vmid = findVirtualMachineIdByName("ws-launch.jar " + containerConfiguration.getServerName());
+         // If it has already been started, throw exception unless we explicitly allow connecting to a running server
+         if (vmid != null) {
+            if (!containerConfiguration.isAllowConnectingToRunningServer())
+               throw new LifecycleException("Connecting to an already running server is not allowed");
+            
+            wlpvm = VirtualMachine.attach(vmid);
+            
+            serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+            if (serviceURL == null)
+               throw new LifecycleException("Unable to retrieve connector address for localConnector");
+         } else {
+            // Start the WebSphere Liberty Profile VM
+            List<String> cmd = new ArrayList<String>();
+            
+            cmd.add(System.getProperty("java.home") + "/bin/java");
+            cmd.add("-javaagent:lib/bootstrap-agent.jar");
+            cmd.add("-jar");
+            cmd.add("lib/ws-launch.jar");
+            cmd.add(containerConfiguration.getServerName());
+            
+            log.finer("Starting server with command: " + cmd.toString());
+            
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.directory(new File(containerConfiguration.getWlpHome()));
+            pb.redirectErrorStream();
+            wlpProcess = pb.start();
+            
+            final Process proc = wlpProcess;
+            shutdownThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (proc != null) {
+                        proc.destroy();
+                        try {
+                            proc.waitFor();
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            });
+            Runtime.getRuntime().addShutdownHook(shutdownThread);
+            
+            // Wait up to 30s for the server to start
+            int startupTimeout = 30 * 1000;
+            while (startupTimeout > 0 && serviceURL == null) {
+               startupTimeout -= 500;
+               Thread.sleep(500);
+               
+               if (vmid == null)
+                  // Find WebSphere Liberty Profile VMs by looking for ws-launch.jar and the name of the server
+                  vmid = findVirtualMachineIdByName("ws-launch.jar " + containerConfiguration.getServerName());
+               
+               if (wlpvm == null && vmid != null)
+                  wlpvm = VirtualMachine.attach(vmid);
+               
+               if (serviceURL == null && wlpvm != null)
+                  serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+            }
+            
+            // If serviceURL is still null, we were unable to start the virtual machine
+            if (serviceURL == null)
+               throw new LifecycleException("Unable to retrieve connector address for localConnector of started VM");
+            
+            log.finer("vmid: " + vmid);
+         }
+      } catch (Exception e) {
+         throw new LifecycleException("Could not start container", e);
       }
       
       try {
@@ -254,6 +317,20 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          jmxConnector.close();
       } catch (IOException e) {
          throw new LifecycleException("Communication with the MBean Server failed.", e);
+      }
+      
+      if (shutdownThread != null) {
+         Runtime.getRuntime().removeShutdownHook(shutdownThread);
+         shutdownThread = null;
+      }
+      try {
+         if (wlpProcess != null) {
+            wlpProcess.destroy();
+            wlpProcess.waitFor();
+            wlpProcess = null;
+         }
+      } catch (Exception e) {
+         throw new LifecycleException("Could not stop container", e);
       }
       
       if (log.isLoggable(Level.FINER)) {

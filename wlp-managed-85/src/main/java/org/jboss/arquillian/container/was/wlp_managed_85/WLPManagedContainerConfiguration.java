@@ -34,6 +34,9 @@ public class WLPManagedContainerConfiguration implements
    private String serverName;
    private int httpPort;
    
+   private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
+         System.getProperty("org.jboss.arquillian.container.was.wlp_managed_85.allowConnectingToRunningServer",  "false"));
+   
    @Override
    public void validate() throws ConfigurationException {
       // Validate wlpHome
@@ -72,5 +75,9 @@ public class WLPManagedContainerConfiguration implements
 
    public void setHttpPort(int httpPort) {
       this.httpPort = httpPort;
+   }
+
+   public boolean isAllowConnectingToRunningServer() {
+      return allowConnectingToRunningServer;
    }
 }
