@@ -286,21 +286,29 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       
       // Loop until the application MBean has reached the target state or until the timeout
       try {
-         int i = 0;
+         int timeleft = timeout * 1000;
          while(mbsc.isRegistered(appMBean) != targetState) {
             Thread.sleep(100);
-            if (i > (timeout * 10))
+            if (timeleft <= 0)
                throw new DeploymentException("Timeout while waiting for ApplicationMBean to reach targetState");
-            i++;
+            timeleft -= 100;
          }
-      } catch (IOException e) {
-         throw new DeploymentException("Communication with the MBean Server failed.", e);
-      } catch (InterruptedException e) {
-         // Not planned to happen
-         throw new DeploymentException("Thread has been interrupted", e);
+         
+         // If the target state is true (true==STARTED)
+         // then loop until the deployed application is in started state or until the timeout
+         if (targetState == true) {
+            String applicationState = null;
+            while(applicationState == null || !applicationState.contentEquals("STARTED")) {
+               Thread.sleep(100);
+               applicationState = (String)mbsc.getAttribute(appMBean, "State");
+               if (timeleft <= 0)
+                  throw new DeploymentException("Timeout while waiting for ApplicationState to reach STARTED");
+               timeleft -= 100;
+            }
+         }
+      } catch (Exception e) {
+         throw new DeploymentException("Exception while checking application state.", e);
       }
-      
-      // TODO: It might also be a good idea to check the applications status at this point, if this is a deployment.
       
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "waitForMBeanTargetState");
