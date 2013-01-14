@@ -18,7 +18,6 @@ package org.jboss.arquillian.container.was.remote_8;
 
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
-import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
  * WebSphereRemoteConfiguraiton
@@ -40,14 +39,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    private String sslKeyStore = "";
    private String sslTrustStorePassword = "WebAS";
    private String sslKeyStorePassword = "WebAS";
-   
-   /* (non-Javadoc)
-    * @see org.jboss.arquillian.spi.ContainerConfiguration#getContainerProfile()
-    */
-   public ContainerProfile getContainerProfile()
-   {
-      return ContainerProfile.CLIENT;
-   }
 
    /**
     * @return the remoteServerAddress
