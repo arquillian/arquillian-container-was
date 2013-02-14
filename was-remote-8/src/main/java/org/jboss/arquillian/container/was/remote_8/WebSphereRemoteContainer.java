@@ -309,6 +309,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
       } 
       catch (Exception e) 
       {
+         undeploy(deploymentArchive);
          throw new DeploymentException("Could not deploy application", e);
       }
       finally
