@@ -39,7 +39,6 @@ import org.junit.runner.RunWith;
  * @version $Revision: $
  */
 @RunWith(Arquillian.class)
-@Ignore
 public class WebsphereIntegrationClientTestCase
 {
    @Deployment
