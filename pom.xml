@@ -21,7 +21,6 @@
     <name>Arquillian Container Parent WebSphere AS</name>
     <description>WebSphere AS Container integrations for the Arquillian Project</description>
 
-
     <!-- Properties -->
     <properties>
         <!-- Versioning -->
@@ -52,13 +51,6 @@
         </dependencies>
     </dependencyManagement>
 
-    <modules>
-        <module>was-remote-7</module>
-        <module>was-embedded-8</module>
-        <module>was-remote-8</module>
-        <module>wlp-managed-85</module>
-    </modules>
-
     <build>
         <plugins>
             <plugin>
@@ -71,4 +63,25 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>all</id>
+            <modules>
+                <module>was-remote-7</module>
+                <module>was-embedded-8</module>
+                <module>was-remote-8</module>
+                <module>wlp-managed-85</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>wlp-managed-85</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
