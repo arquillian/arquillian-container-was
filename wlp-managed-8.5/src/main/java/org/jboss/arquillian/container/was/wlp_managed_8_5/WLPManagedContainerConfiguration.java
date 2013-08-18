@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.wlp_managed_85;
+package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import java.io.File;
 
@@ -35,7 +35,7 @@ public class WLPManagedContainerConfiguration implements
    private int httpPort;
    
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
-         System.getProperty("org.jboss.arquillian.container.was.wlp_managed_85.allowConnectingToRunningServer",  "false"));
+         System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
    
    @Override
    public void validate() throws ConfigurationException {
