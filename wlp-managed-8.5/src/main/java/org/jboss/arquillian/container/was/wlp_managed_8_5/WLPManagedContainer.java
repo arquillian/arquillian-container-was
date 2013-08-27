@@ -102,7 +102,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             
             wlpvm = VirtualMachine.attach(vmid);
             
-            serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+            serviceURL = getVMLocalConnectorAddress(wlpvm);
             if (serviceURL == null)
                throw new LifecycleException("Unable to retrieve connector address for localConnector");
          } else {
@@ -154,7 +154,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                   wlpvm = VirtualMachine.attach(vmid);
                
                if (serviceURL == null && wlpvm != null)
-                  serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+                  serviceURL = getVMLocalConnectorAddress(wlpvm);
             }
             
             // If serviceURL is still null, we were unable to start the virtual machine
@@ -178,6 +178,21 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "start");
       }
+   }
+
+   private String getVMLocalConnectorAddress(VirtualMachine wlpvm)
+         throws IOException {
+      String serviceURL;
+      String PROPERTY_NAME = "com.sun.management.jmxremote.localConnectorAddress";
+      
+      serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
+      
+      // On some environments like the IBM JVM the localConnectorAddress is not
+      // in the AgentProperties but in the SystemProperties.
+      if (serviceURL == null)
+         serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
+      
+      return serviceURL;
    }
 
    private String findVirtualMachineIdByName(String name) {
