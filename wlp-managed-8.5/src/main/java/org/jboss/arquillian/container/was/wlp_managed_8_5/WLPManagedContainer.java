@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2012, Red Hat Middleware LLC, and individual contributors
+ * Copyright 2012, 2013, Red Hat Middleware LLC, and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.wlp_managed_85;
+package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -101,7 +102,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             
             wlpvm = VirtualMachine.attach(vmid);
             
-            serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+            serviceURL = getVMLocalConnectorAddress(wlpvm);
             if (serviceURL == null)
                throw new LifecycleException("Unable to retrieve connector address for localConnector");
          } else {
@@ -120,6 +121,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             pb.directory(new File(containerConfiguration.getWlpHome()));
             pb.redirectErrorStream();
             wlpProcess = pb.start();
+            
+            new Thread(new ConsoleConsumer()).start();
             
             final Process proc = wlpProcess;
             shutdownThread = new Thread(new Runnable() {
@@ -151,7 +154,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                   wlpvm = VirtualMachine.attach(vmid);
                
                if (serviceURL == null && wlpvm != null)
-                  serviceURL = wlpvm.getAgentProperties().getProperty("com.sun.management.jmxremote.localConnectorAddress");
+                  serviceURL = getVMLocalConnectorAddress(wlpvm);
             }
             
             // If serviceURL is still null, we were unable to start the virtual machine
@@ -175,6 +178,21 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "start");
       }
+   }
+
+   private String getVMLocalConnectorAddress(VirtualMachine wlpvm)
+         throws IOException {
+      String serviceURL;
+      String PROPERTY_NAME = "com.sun.management.jmxremote.localConnectorAddress";
+      
+      serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
+      
+      // On some environments like the IBM JVM the localConnectorAddress is not
+      // in the AgentProperties but in the SystemProperties.
+      if (serviceURL == null)
+         serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
+      
+      return serviceURL;
    }
 
    private String findVirtualMachineIdByName(String name) {
@@ -373,5 +391,32 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    public void undeploy(Descriptor descriptor) throws DeploymentException {
       // TODO Auto-generated method stub
       
+   }
+   
+   /**
+    * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
+    * Implementation from wildfly's ManagedDeployableContainer.java
+    *
+    * @author Stuart Douglas
+    */
+   private class ConsoleConsumer implements Runnable {
+
+       @Override
+       public void run() {
+           final InputStream stream = wlpProcess.getInputStream();
+           final boolean writeOutput = containerConfiguration.isOutputToConsole();
+
+           try {
+               byte[] buf = new byte[32];
+               int num;
+               // Do not try reading a line cos it considers '\r' end of line
+               while ((num = stream.read(buf)) != -1) {
+                   if (writeOutput)
+                       System.out.write(buf, 0, num);
+               }
+           } catch (IOException e) {
+           }
+       }
+
    }
 }

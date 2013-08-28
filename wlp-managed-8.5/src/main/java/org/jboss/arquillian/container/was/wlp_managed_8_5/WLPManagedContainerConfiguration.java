@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2012, Red Hat Middleware LLC, and individual contributors
+ * Copyright 2012, 2013, Red Hat Middleware LLC, and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.wlp_managed_85;
+package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import java.io.File;
 
@@ -35,7 +35,9 @@ public class WLPManagedContainerConfiguration implements
    private int httpPort;
    
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
-         System.getProperty("org.jboss.arquillian.container.was.wlp_managed_85.allowConnectingToRunningServer",  "false"));
+         System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
+   
+   private boolean outputToConsole = true;
    
    @Override
    public void validate() throws ConfigurationException {
@@ -79,5 +81,13 @@ public class WLPManagedContainerConfiguration implements
 
    public boolean isAllowConnectingToRunningServer() {
       return allowConnectingToRunningServer;
+   }
+
+   public boolean isOutputToConsole() {
+      return outputToConsole;
+   }
+
+   public void setOutputToConsole(boolean outputToConsole) {
+      this.outputToConsole = outputToConsole;
    }
 }
