@@ -94,7 +94,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       String serviceURL = null;
 
       try {
-         vmid = findVirtualMachineIdByName("ws-launch.jar " + containerConfiguration.getServerName());
+         vmid = findVirtualMachineIdByName(containerConfiguration.getServerName());
          // If it has already been started, throw exception unless we explicitly allow connecting to a running server
          if (vmid != null) {
             if (!containerConfiguration.isAllowConnectingToRunningServer())
@@ -141,14 +141,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             Runtime.getRuntime().addShutdownHook(shutdownThread);
             
             // Wait up to 30s for the server to start
-            int startupTimeout = 30 * 1000;
+            int startupTimeout = containerConfiguration.getServerStartTimeout() * 1000;
             while (startupTimeout > 0 && serviceURL == null) {
                startupTimeout -= 500;
                Thread.sleep(500);
                
                if (vmid == null)
                   // Find WebSphere Liberty Profile VMs by looking for ws-launch.jar and the name of the server
-                  vmid = findVirtualMachineIdByName("ws-launch.jar " + containerConfiguration.getServerName());
+                  vmid = findVirtualMachineIdByName(containerConfiguration.getServerName());
                
                if (wlpvm == null && vmid != null)
                   wlpvm = VirtualMachine.attach(vmid);
@@ -185,28 +185,33 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       String serviceURL;
       String PROPERTY_NAME = "com.sun.management.jmxremote.localConnectorAddress";
       
-      serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
-      
+	  serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
+	  
       // On some environments like the IBM JVM the localConnectorAddress is not
       // in the AgentProperties but in the SystemProperties.
       if (serviceURL == null)
-         serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
+	      serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
+      
+      if (log.isLoggable(Level.FINER)) {
+            log.finer("service url: " + serviceURL);
+      }
       
       return serviceURL;
    }
 
-   private String findVirtualMachineIdByName(String name) {
+   private String findVirtualMachineIdByName(String serverName) {
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "findVirtualMachineIdByName");
       }
 
       List<VirtualMachineDescriptor> vmds = VirtualMachine.list();
       for (VirtualMachineDescriptor vmd : vmds) {
+      	String displayName = vmd.displayName();
          if (log.isLoggable(Level.FINER)) {
-            log.finer("VMD displayName: " + vmd.displayName());
+            log.finer("VMD displayName: " + displayName);
             log.finer("VMD id: " + vmd.id());
          }
-         if (vmd.displayName().contains(name)) {
+         if (displayName.contains(serverName) && (displayName.contains("ws-server.jar") || displayName.contains("ws-launch.jar"))) {
             // If VM's display name matches, return.
             if (log.isLoggable(Level.FINER)) {
                log.exiting(className, "findVirtualMachineIdByName", vmd.id());
@@ -238,7 +243,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
       
       // Wait until the application is deployed and available
-      waitForApplicationTargetState(createDeploymentName(archive.getName()), true, 2);
+      waitForApplicationTargetState(createDeploymentName(archive.getName()), true, containerConfiguration.getAppDeployTimeout());
       
       // Return metadata on how to contact the deployed application
       ProtocolMetaData metaData = new ProtocolMetaData();
@@ -266,7 +271,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          throw new DeploymentException("Unable to delete archive from dropIn directory");
 
       // Wait until the application is undeployed
-      waitForApplicationTargetState(createDeploymentName(archive.getName()), false, 2);
+      waitForApplicationTargetState(createDeploymentName(archive.getName()), false, containerConfiguration.getAppUndeployTimeout());
 
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "undeploy");

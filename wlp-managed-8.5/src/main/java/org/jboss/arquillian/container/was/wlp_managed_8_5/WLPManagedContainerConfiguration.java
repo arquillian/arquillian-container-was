@@ -29,11 +29,14 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
  */
 public class WLPManagedContainerConfiguration implements
       ContainerConfiguration {
-	
+   
    private String wlpHome;
    private String serverName;
    private int httpPort;
-   
+   private int serverStartTimeout = 30;
+   private int appDeployTimeout = 2;
+   private int appUndeployTimeout = 2;
+
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
    
@@ -90,4 +93,29 @@ public class WLPManagedContainerConfiguration implements
    public void setOutputToConsole(boolean outputToConsole) {
       this.outputToConsole = outputToConsole;
    }
+   
+      public int getServerStartTimeout() {
+      return serverStartTimeout;
+   }
+
+   public void setServerStartTimeout(int serverStartTimeout) {
+      this.serverStartTimeout = serverStartTimeout;
+   }
+
+   public int getAppDeployTimeout() {
+      return appDeployTimeout;
+   }
+
+   public void setAppDeployTimeout(int appDeployTimeout) {
+      this.appDeployTimeout = appDeployTimeout;
+   }
+
+   public int getAppUndeployTimeout() {
+      return appUndeployTimeout;
+   }
+
+   public void setAppUndeployTimeout(int appUndeployTimeout) {
+      this.appUndeployTimeout = appUndeployTimeout;
+   }
+
 }
