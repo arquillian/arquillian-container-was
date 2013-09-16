@@ -72,9 +72,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
             log.entering(className, "setup");
       }
-	   
+      
       this.containerConfiguration = configuration;
-	   
+      
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "setup");
       }
@@ -206,7 +206,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
       List<VirtualMachineDescriptor> vmds = VirtualMachine.list();
       for (VirtualMachineDescriptor vmd : vmds) {
-      	String displayName = vmd.displayName();
+         String displayName = vmd.displayName();
          if (log.isLoggable(Level.FINER)) {
             log.finer("VMD displayName: " + displayName);
             log.finer("VMD id: " + vmd.id());
@@ -369,7 +369,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
    }
 
-	public ProtocolDescription getDefaultProtocol() {
+   public ProtocolDescription getDefaultProtocol() {
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "getDefaultProtocol");
       }
@@ -380,10 +380,10 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          log.exiting(className, "getDefaultProtocol", defaultProtocol);
       }
       
-		return new ProtocolDescription(defaultProtocol);
-	}
+      return new ProtocolDescription(defaultProtocol);
+   }
 
-	@Override
+   @Override
    public Class<WLPManagedContainerConfiguration> getConfigurationClass() {
       return WLPManagedContainerConfiguration.class;
    }
