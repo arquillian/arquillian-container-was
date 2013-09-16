@@ -185,15 +185,15 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       String serviceURL;
       String PROPERTY_NAME = "com.sun.management.jmxremote.localConnectorAddress";
       
-	  serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
-	  
+      serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
+      
       // On some environments like the IBM JVM the localConnectorAddress is not
       // in the AgentProperties but in the SystemProperties.
       if (serviceURL == null)
-	      serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
+         serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
       
       if (log.isLoggable(Level.FINER)) {
-            log.finer("service url: " + serviceURL);
+         log.finer("service url: " + serviceURL);
       }
       
       return serviceURL;
