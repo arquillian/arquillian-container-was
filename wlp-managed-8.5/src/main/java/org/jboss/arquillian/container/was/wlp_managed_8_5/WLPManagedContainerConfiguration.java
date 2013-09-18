@@ -94,7 +94,7 @@ public class WLPManagedContainerConfiguration implements
       this.outputToConsole = outputToConsole;
    }
    
-      public int getServerStartTimeout() {
+   public int getServerStartTimeout() {
       return serverStartTimeout;
    }
 
