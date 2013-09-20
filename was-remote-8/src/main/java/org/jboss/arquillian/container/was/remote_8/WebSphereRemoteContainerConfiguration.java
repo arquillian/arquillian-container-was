@@ -18,7 +18,6 @@ package org.jboss.arquillian.container.was.remote_8;
 
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
-import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
  * WebSphereRemoteConfiguraiton
@@ -41,13 +40,10 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    private String sslTrustStorePassword = "WebAS";
    private String sslKeyStorePassword = "WebAS";
    
-   /* (non-Javadoc)
-    * @see org.jboss.arquillian.spi.ContainerConfiguration#getContainerProfile()
-    */
-   public ContainerProfile getContainerProfile()
-   {
-      return ContainerProfile.CLIENT;
-   }
+   /** Enables or disables the upload of the deployable archive to the server
+    * (AppConstants.APPDEPL_ARCHIVE_UPLOAD). Can be false for local servers and speeds
+    * deployment for large archives. */
+   private boolean archiveUploadEnabled = true;
 
    /**
     * @return the remoteServerAddress
@@ -148,5 +144,13 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    public void validate() throws ConfigurationException {
 		// TODO Auto-generated method stub
 		
-	}
+   }
+   
+   public void setArchiveUploadEnabled(boolean enabled) {
+      this.archiveUploadEnabled = enabled;
+   }
+   
+   public boolean isArchiveUploadEnabled() {
+      return this.archiveUploadEnabled;
+   }
 }
