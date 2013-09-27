@@ -18,7 +18,6 @@ package org.jboss.arquillian.container.was.remote_7;
 
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
-import org.jboss.arquillian.test.spi.ContainerProfile;
 
 /**
  * WebSphereRemoteConfiguration
@@ -46,14 +45,6 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
     * deployment for large archives. */
    private boolean archiveUploadEnabled = true;
    
-   /* (non-Javadoc)
-    * @see org.jboss.arquillian.spi.ContainerConfiguration#getContainerProfile()
-    */
-   public ContainerProfile getContainerProfile()
-   {
-      return ContainerProfile.CLIENT;
-   }
-
    /**
     * @return the remoteServerAddress
     */
