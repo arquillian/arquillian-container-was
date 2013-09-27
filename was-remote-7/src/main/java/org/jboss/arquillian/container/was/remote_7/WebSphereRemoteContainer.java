@@ -246,7 +246,7 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          module2Server.put("*",targetServer);
          
          prefs.put(AppConstants.APPDEPL_MODULE_TO_SERVER, module2Server);
-         prefs.put(AppConstants.APPDEPL_ARCHIVE_UPLOAD, Boolean.TRUE);
+         prefs.put(AppConstants.APPDEPL_ARCHIVE_UPLOAD, containerConfiguration.isArchiveUploadEnabled());
          
          AppManagement appManagementProxy = AppManagementProxy.getJMXProxyForClient(adminClient);
          
