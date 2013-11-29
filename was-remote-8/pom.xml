@@ -23,7 +23,7 @@
 
     <properties>
         <was_home>${env.WAS8_HOME}</was_home>
-        <version.ejb_api>3.1.0</version.ejb_api>
+        <version.jboss-spec-ejb3.1>1.0.2.Final</version.jboss-spec-ejb3.1>
     </properties>
 
     <profiles>
@@ -124,9 +124,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jboss.ejb3</groupId>
-            <artifactId>jboss-ejb3-api</artifactId>
-            <version>${version.ejb_api}</version>
+            <groupId>org.jboss.spec.javax.ejb</groupId>
+            <artifactId>jboss-ejb-api_3.1_spec</artifactId>
+            <version>${version.jboss-spec-ejb3.1}</version>
             <scope>test</scope>
         </dependency>
 
