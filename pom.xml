@@ -70,6 +70,7 @@
                 <module>was-remote-7</module>
                 <module>was-embedded-8</module>
                 <module>was-remote-8</module>
+                <module>was-remote-8.5</module>
                 <module>wlp-managed-8.5</module>
             </modules>
         </profile>
