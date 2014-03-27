@@ -36,6 +36,8 @@ public class WLPManagedContainerConfiguration implements
    private int serverStartTimeout = 30;
    private int appDeployTimeout = 2;
    private int appUndeployTimeout = 2;
+   private String sharedLib = null;
+   private String deployType = "dropins";
 
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
@@ -56,6 +58,19 @@ public class WLPManagedContainerConfiguration implements
       // Validate httpPort
       if (httpPort > 65535 || httpPort <= 0)
          throw new ConfigurationException("httpPort provided is not valid: " + httpPort);
+
+      // Validate deployType
+      if (!deployType.equalsIgnoreCase("xml") && !deployType.equalsIgnoreCase("dropins"))
+    	  throw new ConfigurationException("deployType provided is not valid: " + deployType + ".  deployType should be xml or dropins.");
+
+      //Validate sharedLib
+      if (!sharedLib.equals(null)) {
+    	  if (!sharedLib.isEmpty()) {
+    		  if (!deployType.equalsIgnoreCase("xml"))
+    			  throw new ConfigurationException("deployType must be set to xml when sharedLib is not empty");
+    	  }
+      }
+      
    }
 
    public String getWlpHome() {
@@ -81,7 +96,22 @@ public class WLPManagedContainerConfiguration implements
    public void setHttpPort(int httpPort) {
       this.httpPort = httpPort;
    }
+   
+   public void setSharedLib(String sharedLib) {
+	   this.sharedLib = sharedLib;
+   }
+   
+   public String getSharedLib() {
+	   return sharedLib;
+   }
 
+   public void setDeployType(String deployType) {
+	   this.deployType = deployType;
+   }
+   
+   public String getDeployType() {
+	   return deployType;
+   }
    public boolean isAllowConnectingToRunningServer() {
       return allowConnectingToRunningServer;
    }
@@ -116,6 +146,20 @@ public class WLPManagedContainerConfiguration implements
 
    public void setAppUndeployTimeout(int appUndeployTimeout) {
       this.appUndeployTimeout = appUndeployTimeout;
+   }
+   
+   public boolean isDeployTypeXML() {
+	   if (deployType.equalsIgnoreCase("xml"))
+		   return true;
+	   else
+		   return false;
+   }
+   
+   public boolean isDeployTypeDropins() {
+	   if (deployType.equalsIgnoreCase("dropins"))
+		   return true;
+	   else
+		   return false;
    }
 
 }
