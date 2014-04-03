@@ -45,9 +45,14 @@ public class WLPManagedContainerConfiguration implements
    @Override
    public void validate() throws ConfigurationException {
       // Validate wlpHome
-      File wlpHomeDir = new File(wlpHome);
-      if (!wlpHomeDir.isDirectory())
-         throw new ConfigurationException("wlpHome provided is not valid: " + wlpHome);
+      if (wlpHome != null) {
+         File wlpHomeDir = new File(wlpHome);
+         if (!wlpHomeDir.isDirectory())
+            throw new ConfigurationException("wlpHome provided is not valid: " + wlpHome);
+      } else {
+         // If wlpHome is null, throw exception
+         throw new ConfigurationException("wlpHome is required for initialization");
+      }
       
       // Validate serverName
       if (!serverName.matches("^[A-Za-z][A-Za-z0-9]*$"))
