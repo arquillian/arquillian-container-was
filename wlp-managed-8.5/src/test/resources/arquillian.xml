@@ -10,7 +10,6 @@
 	<container qualifier="websphere" default="true">
 		<configuration>
 			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
-			<property name="serverName">defaultServer</property>
 			<property name="httpPort">9080</property>
 		</configuration>
 	</container>
