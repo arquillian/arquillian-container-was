@@ -32,7 +32,7 @@ public class WLPManagedContainerConfiguration implements
    
    private String wlpHome;
    private String serverName = "defaultServer";
-   private int httpPort;
+   private int httpPort = 9080;
    private int serverStartTimeout = 30;
    private int appDeployTimeout = 2;
    private int appUndeployTimeout = 2;
