@@ -69,7 +69,7 @@ public class WLPManagedContainerConfiguration implements
          throw new ConfigurationException("deployType provided is not valid: " + deployType + ".  deployType should be xml or dropins.");
 
       //Validate sharedLib
-      if (!sharedLib.equals(null)) {
+      if (sharedLib != null) {
          if (!sharedLib.isEmpty()) {
             if (!deployType.equalsIgnoreCase("xml"))
                throw new ConfigurationException("deployType must be set to xml when sharedLib is not empty");
