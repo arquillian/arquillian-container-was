@@ -34,7 +34,7 @@ public class WLPManagedContainerConfiguration implements
    private String serverName = "defaultServer";
    private int httpPort = 9080;
    private int serverStartTimeout = 30;
-   private int appDeployTimeout = 2;
+   private int appDeployTimeout = 20;
    private int appUndeployTimeout = 2;
    private String sharedLib = null;
    private String deployType = "dropins";
