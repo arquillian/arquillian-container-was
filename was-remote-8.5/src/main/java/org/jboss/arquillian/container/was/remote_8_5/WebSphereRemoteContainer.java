@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.remote_8;
+package org.jboss.arquillian.container.was.remote_8_5;
 
 import java.io.File;
 import java.io.StringReader;
