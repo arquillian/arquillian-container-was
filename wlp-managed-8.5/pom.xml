@@ -33,6 +33,32 @@
                         </property>
                     </systemProperties>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <goals>  
+                            <goal>test</goal>  
+                        </goals>  
+                        <configuration>
+                            <reportsDirectory>${project.build.directory}/surefire-reports/wlp-dropins-deployment-test</reportsDirectory>
+                            <systemPropertyVariables>
+                                <arquillian.launch>wlp-dropins-deployment</arquillian.launch>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>wlp-xml-deployment-test</id>
+                        <goals>  
+                            <goal>test</goal>  
+                        </goals>  
+                        <configuration>
+                            <reportsDirectory>${project.build.directory}/surefire-reports/wlp-xml-deployment-test</reportsDirectory>
+                            <systemPropertyVariables>
+                                <arquillian.launch>wlp-xml-deployment</arquillian.launch>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
