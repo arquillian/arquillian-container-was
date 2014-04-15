@@ -136,6 +136,8 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          wasServerProps.setProperty("javax.net.ssl.keyStore", containerConfiguration.getSslKeyStore());
          wasServerProps.setProperty("javax.net.ssl.trustStorePassword", containerConfiguration.getSslTrustStorePassword());
          wasServerProps.setProperty("javax.net.ssl.keyStorePassword", containerConfiguration.getSslKeyStorePassword());
+         wasServerProps.setProperty("javax.net.ssl.trustStoreType", containerConfiguration.getSslTrustStoreType());
+         wasServerProps.setProperty("javax.net.ssl.keyStoreType", containerConfiguration.getSslKeyStoreType());
       } else {
          wasServerProps.setProperty(AdminClient.CONNECTOR_SECURITY_ENABLED, "false");
       }
