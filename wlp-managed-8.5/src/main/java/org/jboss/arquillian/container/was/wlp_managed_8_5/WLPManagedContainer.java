@@ -156,6 +156,18 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             while (startupTimeout > 0 && serviceURL == null) {
                startupTimeout -= 500;
                Thread.sleep(500);
+
+               // Verify that the process we're looking for is actually running
+               int ev = Integer.MIN_VALUE; // exit value of the process
+               IllegalThreadStateException itse = null; // Will be thrown when process is still running
+               try {
+                  ev = wlpProcess.exitValue();
+               } catch (IllegalThreadStateException e) {
+                  itse = e;
+               }
+
+               if (itse == null)
+                  throw new LifecycleException("Process terminated prematurely; ev = " + ev);
                
                if (vmid == null)
                   // Find WebSphere Liberty Profile VMs by looking for ws-launch.jar and the name of the server
