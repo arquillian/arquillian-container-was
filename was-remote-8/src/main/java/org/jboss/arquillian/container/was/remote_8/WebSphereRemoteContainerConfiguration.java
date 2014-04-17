@@ -39,6 +39,8 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    private String sslKeyStore = "";
    private String sslTrustStorePassword = "WebAS";
    private String sslKeyStorePassword = "WebAS";
+   private String sslTrustStoreType = null;
+   private String sslKeyStoreType = null;
    
    /** Enables or disables the upload of the deployable archive to the server
     * (AppConstants.APPDEPL_ARCHIVE_UPLOAD). Can be false for local servers and speeds
@@ -139,6 +141,22 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
 
    public String getSslKeyStorePassword() {
       return sslKeyStorePassword;
+   }
+
+   public void setSslTrustStoreType(String sslTrustStoreType) {
+       this.sslTrustStoreType = sslTrustStoreType;
+   }
+
+   public String getSslTrustStoreType() {
+       return this.sslTrustStoreType;
+   }
+
+   public void setSslKeyStoreType(String sslKeyStoreType) {
+       this.sslKeyStoreType = sslKeyStoreType;
+   }
+
+   public String getSslKeyStoreType() {
+       return this.sslKeyStoreType;
    }
 
    public void validate() throws ConfigurationException {
