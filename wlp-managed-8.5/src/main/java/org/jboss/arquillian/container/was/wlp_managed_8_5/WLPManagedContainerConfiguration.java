@@ -49,7 +49,9 @@ public class WLPManagedContainerConfiguration implements
       // Validate wlpHome
       if (wlpHome != null) {
          File wlpHomeDir = new File(wlpHome);
-         if (!wlpHomeDir.isDirectory())
+         File bsAgentJar = new File(wlpHome + "/lib/bootstrap-agent.jar");
+         File wsLaunchJar = new File(wlpHome + "/lib/ws-launch.jar");
+         if (!(wlpHomeDir.isDirectory() && bsAgentJar.isFile() && wsLaunchJar.isFile()))
             throw new ConfigurationException("wlpHome provided is not valid: " + wlpHome);
       } else {
          // If wlpHome is null, throw exception
