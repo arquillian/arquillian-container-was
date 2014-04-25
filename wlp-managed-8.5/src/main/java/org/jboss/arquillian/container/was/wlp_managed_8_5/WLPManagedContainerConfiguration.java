@@ -123,6 +123,10 @@ public class WLPManagedContainerConfiguration implements
       return allowConnectingToRunningServer;
    }
 
+   public void setAllowConnectingToRunningServer(boolean allowConnectingToRunningServer) {
+       this.allowConnectingToRunningServer = allowConnectingToRunningServer;
+   }
+
    public boolean isOutputToConsole() {
       return outputToConsole;
    }
