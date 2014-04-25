@@ -17,6 +17,9 @@
     <name>Arquillian Container WebSphere Liberty Profile Managed 8.5</name>
     <description>WebSphere Liberty Profile 8.5 Managed Container integration for the Arquillian Project</description>
 
+    <properties>
+        <skipTests>true</skipTests>
+    </properties>
     <!-- Build -->
 
     <build>
@@ -40,6 +43,7 @@
                             <goal>test</goal>  
                         </goals>  
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <reportsDirectory>${project.build.directory}/surefire-reports/wlp-dropins-deployment-test</reportsDirectory>
                             <systemPropertyVariables>
                                 <arquillian.launch>wlp-dropins-deployment</arquillian.launch>
@@ -52,6 +56,7 @@
                             <goal>test</goal>  
                         </goals>  
                         <configuration>
+                            <skip>${skipTests}</skip>
                             <reportsDirectory>${project.build.directory}/surefire-reports/wlp-xml-deployment-test</reportsDirectory>
                             <systemPropertyVariables>
                                 <arquillian.launch>wlp-xml-deployment</arquillian.launch>
