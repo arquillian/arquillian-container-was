@@ -38,6 +38,7 @@ public class WLPManagedContainerConfiguration implements
    private int appUndeployTimeout = 2;
    private String sharedLib = null;
    private String deployType = "dropins";
+   private String javaVmArguments = "";
 
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
@@ -171,5 +172,13 @@ public class WLPManagedContainerConfiguration implements
          return true;
       else
          return false;
+   }
+
+   public String getJavaVmArguments() {
+      return javaVmArguments;
+   }
+
+   public void setJavaVmArguments(String javaVmArguments) {
+      this.javaVmArguments = javaVmArguments;
    }
 }

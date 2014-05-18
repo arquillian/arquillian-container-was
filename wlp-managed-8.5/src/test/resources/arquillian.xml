@@ -19,6 +19,7 @@
 			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
 			<property name="httpPort">9080</property>
 			<property name="deployType">xml</property>
+			<property name="javaVmArguments">-Xmx512m</property>
 		</configuration>
 	</container>
 </arquillian>
