@@ -119,8 +119,12 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          } else {
             // Start the WebSphere Liberty Profile VM
             List<String> cmd = new ArrayList<String>();
+
+            String javaVmArguments = containerConfiguration.getJavaVmArguments();
             
             cmd.add(System.getProperty("java.home") + "/bin/java");
+            if (!javaVmArguments.equals(""))
+               cmd.add(javaVmArguments);
             cmd.add("-javaagent:lib/bootstrap-agent.jar");
             cmd.add("-jar");
             cmd.add("lib/ws-launch.jar");
