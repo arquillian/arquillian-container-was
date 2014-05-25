@@ -302,7 +302,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
          // Return metadata on how to contact the deployed application
          ProtocolMetaData metaData = new ProtocolMetaData();
-         HTTPContext httpContext = new HTTPContext("localhost", containerConfiguration.getHttpPort());
+         HTTPContext httpContext = new HTTPContext("localhost", getHttpPort());
          httpContext.add(new Servlet("ArquillianServletRunner", deployName));
          metaData.addContext(httpContext);
 
@@ -314,6 +314,64 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       } catch (Exception e) {
          throw new DeploymentException("Exception while deploying application.", e);
       }
+   }
+   
+   private int getHttpPort() throws DeploymentException {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "getHttpPort");
+      }
+      
+      int httpPort = containerConfiguration.getHttpPort();
+      
+      if (httpPort == 0)
+         httpPort = getHttpPortFromChannelFWMBean("defaultHttpEndpoint");
+      
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "getHttpPort", httpPort);
+      }
+      return httpPort;
+   }
+   
+   // Returns the HttpPort configured on the Channel Framework MBean with the provided endpoint name
+   private int getHttpPortFromChannelFWMBean(String endpointName) throws DeploymentException {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "getHttpPortFromChannelFWMBean", endpointName);
+      }
+
+      ObjectName endpointMBean = null;
+      try {
+         endpointMBean = new ObjectName(
+               "WebSphere:feature=channelfw,type=endpoint,name="
+                     + endpointName);
+      } catch (MalformedObjectNameException e) {
+         throw new DeploymentException(
+               "The generated object name is wrong. The endpointName used was '"
+                     + endpointName + "'", e);
+      } catch (NullPointerException e) {
+         // This should never happen given that the name parameter to the
+         // ObjectName constructor above can never be null
+         throw new DeploymentException("This should never happen", e);
+      }
+      
+      int httpPort;
+      
+      try {
+         if (!mbsc.isRegistered(endpointMBean))
+            throw new DeploymentException("The Channel Framework MBean with endpointName '"
+                  + endpointName + "' does not exist.");
+         
+         httpPort = ((Integer)mbsc.getAttribute(endpointMBean, "Port")).intValue();
+         log.finer("httpPort: " + httpPort);
+      } catch (Exception e) {
+         throw new DeploymentException(
+               "Exception while retrieving httpPort information from Channel Framework MBean. "
+               + "The httpPort can also be manually configured in the arquillian container configuration.", e);
+      }
+
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "getHttpPortFromChannelFWMBean", httpPort);
+      }
+      return httpPort;
    }
 
    public void undeploy(final Archive<?> archive) throws DeploymentException
