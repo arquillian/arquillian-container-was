@@ -32,7 +32,7 @@ public class WLPManagedContainerConfiguration implements
    
    private String wlpHome;
    private String serverName = "defaultServer";
-   private int httpPort = 9080;
+   private int httpPort = 0;
    private int serverStartTimeout = 30;
    private int appDeployTimeout = 20;
    private int appUndeployTimeout = 2;
@@ -64,7 +64,7 @@ public class WLPManagedContainerConfiguration implements
          throw new ConfigurationException("serverName provided is not valid: '" + serverName + "'");
       
       // Validate httpPort
-      if (httpPort > 65535 || httpPort <= 0)
+      if (httpPort > 65535 || httpPort < 0)
          throw new ConfigurationException("httpPort provided is not valid: " + httpPort);
 
       // Validate deployType

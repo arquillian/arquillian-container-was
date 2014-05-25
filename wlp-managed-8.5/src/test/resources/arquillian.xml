@@ -10,7 +10,6 @@
 	<container qualifier="wlp-dropins-deployment" default="true">
 		<configuration>
 			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
-			<property name="httpPort">9080</property>
 			<property name="deployType">dropins</property>
 		</configuration>
 	</container>
