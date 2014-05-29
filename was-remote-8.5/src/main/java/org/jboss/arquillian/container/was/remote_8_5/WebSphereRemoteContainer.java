@@ -216,6 +216,13 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          Hashtable<Object, Object> prefs = new Hashtable<Object, Object>();
          
          prefs.put(AppConstants.APPDEPL_LOCALE, Locale.getDefault());
+         prefs.put(AppConstants.APPDEPL_CLASSLOADINGMODE, containerConfiguration.getDeploymentClassLoadingMode());
+         prefs.put(AppConstants.APPDEPL_CLASSLOADERPOLICY, containerConfiguration.getDeploymentClassLoaderPolicy());
+
+         log.fine(String.format("Deploying with classloading mode %s",
+                 containerConfiguration.getDeploymentClassLoadingMode()));
+         log.fine(String.format("Deploying with classloader policy %s",
+                 containerConfiguration.getDeploymentClassLoaderPolicy()));
 
          Properties props = new Properties();
          prefs.put (AppConstants.APPDEPL_DFLTBNDG, props);
