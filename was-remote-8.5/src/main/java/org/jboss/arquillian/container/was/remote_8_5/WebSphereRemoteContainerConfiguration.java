@@ -16,6 +16,7 @@
  */
 package org.jboss.arquillian.container.was.remote_8_5;
 
+import com.ibm.websphere.management.application.AppConstants;
 import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
 
@@ -46,6 +47,25 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
     * (AppConstants.APPDEPL_ARCHIVE_UPLOAD). Can be false for local servers and speeds
     * deployment for large archives. */
    private boolean archiveUploadEnabled = true;
+
+   /**
+    * Specifies the classloading mode for deployed application ({@link AppConstants#APPDEPL_CLASSLOADINGMODE}): 
+    * <ul>
+    *   <li>parent-first ({@link AppConstants#APPDEPL_CLASSLOADINGMODE_PARENTFIRST}) - the default,</li>
+    *   <li>parent-last ({@link AppConstants#APPDEPL_CLASSLOADINGMODE_PARENTLAST}).</li>
+    * </ul>
+    */
+   private String deploymentClassLoadingMode = AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTFIRST;
+
+   /**
+    * Specifies the classloader policy for deployed application ({@link AppConstants#APPDEPL_CLASSLOADERPOLICY}):
+    * <ul>
+    *   <li>multiple classloaders for each WAR within the EAR
+    *       ({@link AppConstants#APPDEPL_CLASSLOADERPOLICY_MULTIPLE}) - the default,</li>
+    *   <li>single classloader for the whole EAR ({@link AppConstants#APPDEPL_CLASSLOADERPOLICY_SINGLE}).</li>
+    * </ul>
+    */
+   private String deploymentClassLoaderPolicy = AppConstants.APPDEPL_CLASSLOADERPOLICY_MULTIPLE;
 
    /**
     * @return the remoteServerAddress
@@ -159,9 +179,27 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
        return this.sslKeyStoreType;
    }
 
+   @Override
    public void validate() throws ConfigurationException {
-		// TODO Auto-generated method stub
-		
+       if (!AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTFIRST.equals(deploymentClassLoadingMode)
+               && !AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTLAST.equals(deploymentClassLoadingMode)) {
+
+           throw new ConfigurationException(String.format("Illegal value %s for deploymentClassLoadingMode. "
+                                                          + "Possible values: %s, %s",
+                                                          deploymentClassLoadingMode,
+                                                          AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTFIRST,
+                                                          AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTLAST));
+       }
+
+       if (!AppConstants.APPDEPL_CLASSLOADERPOLICY_MULTIPLE.equals(deploymentClassLoaderPolicy)
+               && !AppConstants.APPDEPL_CLASSLOADERPOLICY_SINGLE.equals(deploymentClassLoaderPolicy)) {
+
+           throw new ConfigurationException(String.format("Illegal value %s for deploymentClassLoaderPolicy. "
+                                                          + "Possible values: %s, %s",
+                                                          deploymentClassLoaderPolicy,
+                                                          AppConstants.APPDEPL_CLASSLOADERPOLICY_MULTIPLE,
+                                                          AppConstants.APPDEPL_CLASSLOADERPOLICY_SINGLE));
+       }
    }
    
    public void setArchiveUploadEnabled(boolean enabled) {
@@ -171,4 +209,21 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
    public boolean isArchiveUploadEnabled() {
       return this.archiveUploadEnabled;
    }
+
+   public String getDeploymentClassLoadingMode() {
+       return this.deploymentClassLoadingMode;
+   }
+
+   public void setDeploymentClassLoadingMode(final String deploymentClassLoadingMode) {
+       this.deploymentClassLoadingMode = deploymentClassLoadingMode;
+   }
+
+   public String getDeploymentClassLoaderPolicy() {
+       return this.deploymentClassLoaderPolicy;
+   }
+
+   public void setDeploymentClassLoaderPolicy(final String deploymentClassLoaderPolicy) {
+       this.deploymentClassLoaderPolicy = deploymentClassLoaderPolicy;
+   }
+
 }
