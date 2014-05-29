@@ -57,7 +57,7 @@ public class WebSphereRemoteContainerConfiguration implements ContainerConfigura
     */
    private String deploymentClassLoadingMode = AppConstants.APPDEPL_CLASSLOADINGMODE_PARENTFIRST;
 
-    /**
+   /**
     * Specifies the classloader policy for deployed application ({@link AppConstants#APPDEPL_CLASSLOADERPOLICY}):
     * <ul>
     *   <li>multiple classloaders for each WAR within the EAR
