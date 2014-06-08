@@ -364,7 +364,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          log.finer("httpPort: " + httpPort);
       } catch (Exception e) {
          throw new DeploymentException(
-               "Exception while retrieving port information from Channel Framework MBean.", e);
+               "Exception while retrieving httpPort information from Channel Framework MBean. "
+               + "The httpPort can also be manually configured in the arquillian container configuration.", e);
       }
 
       if (log.isLoggable(Level.FINER)) {
