@@ -84,4 +84,7 @@
             </modules>
         </profile>
     </profiles>
+    <modules>
+    	<module>arquillian-wlp-remote-8.5</module>
+    </modules>
 </project>
