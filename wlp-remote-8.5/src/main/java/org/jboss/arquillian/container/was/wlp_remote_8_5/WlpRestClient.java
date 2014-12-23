@@ -1,4 +1,4 @@
-package org.jboss.arquillian.container.was.wlp_remote_8_5.client;
+package org.jboss.arquillian.container.was.wlp_remote_8_5;
 
 import java.io.File;
 import java.io.IOException;
@@ -8,13 +8,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.jboss.arquillian.container.spi.client.container.DeploymentException;
-import org.jboss.arquillian.container.was.wlp_remote_8_5.WLPRemoteContainerConfiguration;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -42,18 +42,34 @@ public class WlpRestClient {
      * @throws IOException
      */
     public void deploy(File archive) throws ClientProtocolException, IOException {
+
+        if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "deploy");
+        }
+
         Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
                 configuration.getUsername(), configuration.getPassword());
 
-        String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT;
+        String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
+                + archive.getName();
 
-        byte[] result = executor
+        String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
+                + FILE_ENDPOINT + URLEncoder.encode(deployPath);
+
+        int result = executor
                 .execute(
                         Request.Post(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1)
-                                .bodyFile(archive, ContentType.DEFAULT_BINARY)).returnContent().asBytes();
+                                .bodyFile(archive, ContentType.DEFAULT_BINARY)).returnResponse().getStatusLine()
+                .getStatusCode();
 
-        System.out.println(new String(result));
+        if (log.isLoggable(Level.INFO)) {
+            log.info("While deploying file " + archive.getName() + ", server returned response code " + result);
+        }
+
+        if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "deploy");
+        }
+
     }
 
     /**
@@ -63,29 +79,32 @@ public class WlpRestClient {
      * @throws IOException
      */
     public void undeploy(File archive) throws ClientProtocolException, IOException {
-        
+
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "undeploy");
         }
-        
-        String deployPath = configuration.getWlpHome()+"/usr/servers/"+configuration.getServerName()+"/dropins/"+archive.getName();
-                
+
+        String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
+                + archive.getName();
+
         Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
                 configuration.getUsername(), configuration.getPassword());
 
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT  +URLEncoder.encode(deployPath)+"?recursiveDelete=true";
+                + FILE_ENDPOINT + URLEncoder.encode(deployPath);
 
         int result = executor
                 .execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
                 .returnResponse().getStatusLine().getStatusCode();
-        
-        System.out.println("Undeploy result "+serverRestEndpoint+" "+result);
-        
+
+        if (result == HttpStatus.SC_NO_CONTENT) {
+            log.fine("File " + archive.getName() + " was deleted");
+        }
+
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp", result);
         }
-        
+
     }
 
     /**
@@ -96,7 +115,7 @@ public class WlpRestClient {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "isServerUp");
         }
-        
+
         String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + "/IBMJMXConnectorREST";
         Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
@@ -107,13 +126,12 @@ public class WlpRestClient {
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp");
         }
-        
+
         if (result == 200) {
             return true;
         } else {
             return false;
         }
-        
     }
 
     /**
@@ -135,22 +153,26 @@ public class WlpRestClient {
                 + MBEANS_ENDPOINT + "WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name="
                 + applicationName + "/attributes/State";
 
+        String status = "";
         try {
             String jsonResponse = executor.execute(Request.Get(hostName)).returnContent().asString();
-            String status = parseJsonResponse(jsonResponse);
-            if ("STARTED".equals(status)) {
-                return true;
-            }
+            status = parseJsonResponse(jsonResponse);
         } catch (ClientProtocolException e) {
-            e.printStackTrace();
+            status = "error";
         } catch (IOException e) {
-            e.printStackTrace();
+            status = "error";
         }
 
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isApplicationStarted");
         }
-        return false;
+
+        if ("STARTED".equals(status)) {
+            log.fine("Application is started");
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private String parseJsonResponse(String jsonString) {
@@ -169,7 +191,7 @@ public class WlpRestClient {
         return status;
     }
 
-    public static void main(String[] args) throws ClientProtocolException, IOException, DeploymentException {
+    public static void main(String[] args) throws Exception {
         File f = new File(
                 "/home/tony/git-projects/websphere-stuff/prmui-promotion-service/ear/target/prmui-promotion-service-ear.ear");
         WLPRemoteContainerConfiguration config = new WLPRemoteContainerConfiguration();
@@ -180,16 +202,19 @@ public class WlpRestClient {
         config.setServerName("defaultServer");
         config.setWlpHome("/home/tony/software/wlp-8.5.5.4/wlp");
         WlpRestClient client = new WlpRestClient(config);
-        client.isServerUp();
+        boolean up = client.isServerUp();
+        assert true == up;
 
-        client.isApplicationStarted("prmui-promotion-service-ear");
+        client.deploy(f);
 
-        // String destPath =
-        // URLEncoder.encode("/home/tony/software/wlp-8.5.5.4/wlp/usr/servers/defaultServer/dropins/"
-        // + f.getName());
-        //
+        Thread.sleep(2000);
+
+        boolean started = client.isApplicationStarted("prmui-promotion-service-ear");
+        assert true == started;
+
+        Thread.sleep(2000);
+
         client.undeploy(f);
-        // destPath);
     }
 
 }
