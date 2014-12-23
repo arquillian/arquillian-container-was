@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Sample server.xml configuration for use with WLP remote Arquillian container 
+	adapter -->
+<server description="new server">
+
+	<featureManager>
+		<feature>jsp-2.2</feature>
+		<feature>jaxws-2.2</feature>
+		<feature>localConnector-1.0</feature>
+		<feature>jsf-2.0</feature>
+		<feature>jaxrs-1.1</feature>
+		<feature>cdi-1.0</feature>
+		<feature>restConnector-1.0</feature>
+	</featureManager>
+
+	<httpEndpoint httpPort="9080" httpsPort="9443"
+		id="defaultHttpEndpoint" host="*" />
+
+	<!-- userName and password should also be set in arquillian.xml to these 
+		values -->
+	<quickStartSecurity userName="admin" userPassword="admin" />
+
+	<!-- Enable the keystore -->
+	<keyStore id="defaultKeyStore" password="password" />
+
+	<applicationMonitor updateTrigger="mbean" />
+	<logging consoleLogLevel="INFO" />
+
+
+	<!-- This section is needed to allow upload of files to the dropins directory, 
+		the remote container adapter relies on this configuration -->
+	<remoteFileAccess>
+		<writeDir>${server.config.dir}/dropins</writeDir>
+	</remoteFileAccess>
+
+</server>
