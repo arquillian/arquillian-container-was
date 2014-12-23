@@ -62,9 +62,9 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         try {
             ready = restClient.isServerUp();
         } catch (ClientProtocolException e) {
-            throw new LifecycleException("Could not determine remove server status : "+e);
+            throw new LifecycleException("Could not determine remote server status : "+e);
         } catch (IOException e) {
-            throw new LifecycleException("Could not determine remove server status : "+e);
+            throw new LifecycleException("Could not determine remote server status : "+e);
         }
         
         if (!ready) {
@@ -74,7 +74,13 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     @Override
     public void stop() throws LifecycleException {
-        // TODO Auto-generated method stub
+        if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "stop");
+         }
+         
+         if (log.isLoggable(Level.FINER)) {
+            log.exiting(className, "stop");
+         }
 
     }
 
@@ -146,6 +152,8 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         File exportedArchiveLocation = new File(appDir, archiveName);
         try {
             restClient.undeploy(exportedArchiveLocation);
+            //wait to allow the server to detect the app has been deleted
+            Thread.sleep(3000);
         } catch (Exception e) {
             throw new DeploymentException("Error undeploying application "+archiveName+" "+e);
         }
@@ -188,15 +196,17 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
             throws DeploymentException {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "waitForMBeanTargetState");
+            log.finer("Timeout is "+timeout);
         }
-        try {
+        
+        try {           
             int timeleft = timeout * 1000;
             boolean ready = false;
             while (!ready) {
                 Thread.sleep(100);
                 ready = restClient.isApplicationStarted(applicationName);
                 if (timeleft <= 0)
-                    throw new DeploymentException("Timeout while waiting for ApplicationState to reach STARTED");
+                    throw new DeploymentException("Timeout while waiting for ApplicationState to reach 'STARTED");
                 timeleft -= 100;
             }
         } catch (InterruptedException e) {         

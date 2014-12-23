@@ -38,7 +38,7 @@
 						<goals>
 							<goal>test</goal>
 						</goals>
-						<configuration>
+						<configuration>							
 							<skip>${skipTests}</skip>
 							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-deployment-test</reportsDirectory>
 							<systemPropertyVariables>

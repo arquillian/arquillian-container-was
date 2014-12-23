@@ -39,10 +39,6 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
     private String hostName = "localhost";
     private int httpsPort = 9443;
     private String wlpHome;
-
-    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(System.getProperty(
-            "org.jboss.arquillian.container.was.wlp_remote_8_5.allowConnectingToRunningServer", "true"));
-
     private boolean outputToConsole = true;
 
     @Override
@@ -87,14 +83,6 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
 
     public void setHttpPort(int httpPort) {
         this.httpPort = httpPort;
-    }
-
-    public boolean isAllowConnectingToRunningServer() {
-        return allowConnectingToRunningServer;
-    }
-
-    public void setAllowConnectingToRunningServer(boolean allowConnectingToRunningServer) {
-        this.allowConnectingToRunningServer = allowConnectingToRunningServer;
     }
 
     public boolean isOutputToConsole() {
