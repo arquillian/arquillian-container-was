@@ -7,18 +7,16 @@
 		<property name="deploymentExportPath">target/</property>
 	</engine>
 
-	<container qualifier="wlp-dropins-deployment" default="true">
+	
+	<container qualifier="wlp-remote">
 		<configuration>
-			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
-			<property name="deployType">dropins</property>
-		</configuration>
-	</container>
-	<container qualifier="wlp-xml-deployment">
-		<configuration>
-			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
+			<property name="wlpHome">/home/tony/software/wlp-8.5.5.4/wlp</property>			
+			<property name="hostName">localhost</property>
+			<property name="serverName">defaultServer</property>
+			<property name="username">admin</property>
+			<property name="password">admin</property>			
 			<property name="httpPort">9080</property>
-			<property name="deployType">xml</property>
-			<property name="javaVmArguments">-Xmx512m</property>
+			<property name="httpsPort">9443</property>						
 		</configuration>
 	</container>
 </arquillian>

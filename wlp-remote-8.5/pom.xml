@@ -14,7 +14,7 @@
 	<description>WebSphere Liberty Profile 8.5 Remote Container integration for the Arquillian Project</description>
 
 	<properties>
-		<skipTests>true</skipTests>
+		<!-- <skipTests>true</skipTests>-->
 	</properties>
 
 
@@ -40,25 +40,12 @@
 						</goals>
 						<configuration>
 							<skip>${skipTests}</skip>
-							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-dropins-deployment-test</reportsDirectory>
+							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-deployment-test</reportsDirectory>
 							<systemPropertyVariables>
-								<arquillian.launch>wlp-dropins-deployment</arquillian.launch>
+								<arquillian.launch>wlp-remote</arquillian.launch>
 							</systemPropertyVariables>
 						</configuration>
-					</execution>
-					<execution>
-						<id>wlp-xml-deployment-test</id>
-						<goals>
-							<goal>test</goal>
-						</goals>
-						<configuration>
-							<skip>${skipTests}</skip>
-							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-xml-deployment-test</reportsDirectory>
-							<systemPropertyVariables>
-								<arquillian.launch>wlp-xml-deployment</arquillian.launch>
-							</systemPropertyVariables>
-						</configuration>
-					</execution>
+					</execution>					
 				</executions>
 			</plugin>
 		</plugins>

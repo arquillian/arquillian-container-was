@@ -20,9 +20,9 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class WlpRestClient {
+public class WLPRestClient {
 
-    private static final String className = WlpRestClient.class.getName();
+    private static final String className = WLPRestClient.class.getName();
 
     private static Logger log = Logger.getLogger(className);
 
@@ -31,7 +31,7 @@ public class WlpRestClient {
     private static final String FILE_ENDPOINT = "/IBMJMXConnectorREST/file/";
     private static final String MBEANS_ENDPOINT = "/IBMJMXConnectorREST/mbeans/";
 
-    public WlpRestClient(WLPRemoteContainerConfiguration configuration) {
+    public WLPRestClient(WLPRemoteContainerConfiguration configuration) {
         this.configuration = configuration;
     }
 
@@ -201,7 +201,7 @@ public class WlpRestClient {
         config.setPassword("admin");
         config.setServerName("defaultServer");
         config.setWlpHome("/home/tony/software/wlp-8.5.5.4/wlp");
-        WlpRestClient client = new WlpRestClient(config);
+        WLPRestClient client = new WLPRestClient(config);
         boolean up = client.isServerUp();
         assert true == up;
 

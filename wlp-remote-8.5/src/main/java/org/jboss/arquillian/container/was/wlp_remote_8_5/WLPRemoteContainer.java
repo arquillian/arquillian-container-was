@@ -33,15 +33,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     private WLPRemoteContainerConfiguration containerConfiguration;
 
-    private JMXConnector jmxConnector;
-
-    private MBeanServerConnection mbsc;
-
-    private Process wlpProcess;
-
-    private Thread shutdownThread;
-
-    private WlpRestClient restClient;
+    private WLPRestClient restClient;
 
     @Override
     public Class<WLPRemoteContainerConfiguration> getConfigurationClass() {
@@ -55,7 +47,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         this.containerConfiguration = configuration;
-        restClient = new WlpRestClient(containerConfiguration);
+        restClient = new WLPRestClient(containerConfiguration);
 
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "setup");
@@ -115,7 +107,6 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
                     + ".  Valid archive types are ear, war, and eba.");
         }
 
-        // Save the archive to disk so it can be loaded by the container.
         String appDir = getAppDirectory();
         File exportedArchiveLocation = new File(appDir, archiveName);
 
@@ -133,7 +124,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         // Return metadata on how to contact the deployed application
         ProtocolMetaData metaData = new ProtocolMetaData();
         HTTPContext httpContext = new HTTPContext(containerConfiguration.getHostName(),
-                containerConfiguration.getHttpsPort());
+                containerConfiguration.getHttpPort());
         httpContext.add(new Servlet("ArquillianServletRunner", deployName));
         metaData.addContext(httpContext);
 
@@ -187,7 +178,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     private String getAppDirectory() {
         String appDir = containerConfiguration.getWlpHome() + "/usr/servers/" + containerConfiguration.getServerName()
-                + "/apps";
+                + "/dropins";
         if (log.isLoggable(Level.FINER))
             log.finer("appDir: " + appDir);
         return appDir;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.arquillian.container.was.wlp_managed_8_5;
+package org.jboss.arquillian.container.was.wlp_remote_8_5;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
