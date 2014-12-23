@@ -152,8 +152,6 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         File exportedArchiveLocation = new File(appDir, archiveName);
         try {
             restClient.undeploy(exportedArchiveLocation);
-            //wait to allow the server to detect the app has been deleted
-            Thread.sleep(3000);
         } catch (Exception e) {
             throw new DeploymentException("Error undeploying application "+archiveName+" "+e);
         }

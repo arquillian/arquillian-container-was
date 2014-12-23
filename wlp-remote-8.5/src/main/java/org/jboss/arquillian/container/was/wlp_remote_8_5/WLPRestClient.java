@@ -20,6 +20,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * 
+ * This is a wrapper around the Websphere Liberty JMX Rest API.
+ * 
+ * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
+ *
+ */
 public class WLPRestClient {
 
     private static final String className = WLPRestClient.class.getName();
@@ -30,12 +37,17 @@ public class WLPRestClient {
 
     private static final String FILE_ENDPOINT = "/IBMJMXConnectorREST/file/";
     private static final String MBEANS_ENDPOINT = "/IBMJMXConnectorREST/mbeans/";
+    private final Executor executor;
 
     public WLPRestClient(WLPRemoteContainerConfiguration configuration) {
         this.configuration = configuration;
+        executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()), configuration.getUsername(),
+                configuration.getPassword());
     }
 
     /**
+     * Uses the rest api to upload an application binary to the dropins folder
+     * of WLP to allow the server automatically deploy it.
      * 
      * @param archive
      * @throws ClientProtocolException
@@ -46,9 +58,6 @@ public class WLPRestClient {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "deploy");
         }
-
-        Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
-                configuration.getUsername(), configuration.getPassword());
 
         String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
                 + archive.getName();
@@ -73,6 +82,8 @@ public class WLPRestClient {
     }
 
     /**
+     * Deletes the specified application from the servers dropins directory. WLP
+     * will detect this and then undeploy it.
      * 
      * @param archive
      * @throws ClientProtocolException
@@ -87,9 +98,6 @@ public class WLPRestClient {
         String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
                 + archive.getName();
 
-        Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
-                configuration.getUsername(), configuration.getPassword());
-
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + FILE_ENDPOINT + URLEncoder.encode(deployPath);
 
@@ -99,6 +107,12 @@ public class WLPRestClient {
 
         if (result == HttpStatus.SC_NO_CONTENT) {
             log.fine("File " + archive.getName() + " was deleted");
+            // wait to allow the server to detect the app has been deleted
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         if (log.isLoggable(Level.FINER)) {
@@ -108,8 +122,10 @@ public class WLPRestClient {
     }
 
     /**
+     * Calls the rest api to determine if the application server is up and
+     * running.
      * 
-     * @return
+     * @return boolean - true if the server is running
      */
     public boolean isServerUp() throws ClientProtocolException, IOException {
         if (log.isLoggable(Level.FINER)) {
@@ -118,8 +134,6 @@ public class WLPRestClient {
 
         String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + "/IBMJMXConnectorREST";
-        Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
-                configuration.getUsername(), configuration.getPassword());
 
         int result = executor.execute(Request.Get(hostName)).returnResponse().getStatusLine().getStatusCode();
 
@@ -135,19 +149,17 @@ public class WLPRestClient {
     }
 
     /**
+     * Checks the application State using the WLP rest api.
      * 
      * @param applicationName
-     * @return
+     * @return true if the application is in STARTED state
      * @throws DeploymentException
      */
-    public boolean isApplicationStarted(String applicationName) throws DeploymentException {
+    public boolean isApplicationStarted(String applicationName) {
 
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "isApplicationStarted");
         }
-
-        Executor executor = Executor.newInstance().auth(new HttpHost(configuration.getHostName()),
-                configuration.getUsername(), configuration.getPassword());
 
         String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + MBEANS_ENDPOINT + "WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name="
@@ -175,6 +187,9 @@ public class WLPRestClient {
         }
     }
 
+    /*
+     * Get the state response from the json returned 
+     */
     private String parseJsonResponse(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();
         String status = "";
