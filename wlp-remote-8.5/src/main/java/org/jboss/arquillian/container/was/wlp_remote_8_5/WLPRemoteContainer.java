@@ -101,6 +101,10 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     @Override
     public ProtocolMetaData deploy(Archive<?> archive) throws DeploymentException {
+        if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "deploy");
+        }
+        
         String archiveName = archive.getName();
         String archiveType = createDeploymentType(archiveName);
         String deployName = createDeploymentName(archiveName);
@@ -153,7 +157,6 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "undeploy");
         }
-
     }
 
     @Override
@@ -174,7 +177,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     private void waitForApplicationToStartup(String applicationName, int timeout) throws DeploymentException {
         if (log.isLoggable(Level.FINER)) {
-            log.entering(className, "waitForMBeanTargetState");
+            log.entering(className, "waitForApplicationToStartup");
             log.finer("Timeout is " + timeout);
         }
 
@@ -193,7 +196,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         if (log.isLoggable(Level.FINER)) {
-            log.exiting(className, "waitForMBeanTargetState");
+            log.exiting(className, "waitForApplicationToStartup");
         }
     }
 
