@@ -9,8 +9,7 @@
 
 
 	<container qualifier="wlp-remote">
-		<configuration>
-			<property name="wlpHome">${user.home}/software/wlp-8.5.5.4/wlp</property>
+		<configuration>	
 			<property name="hostName">localhost</property>
 			<property name="serverName">defaultServer</property>
 			<property name="username">admin</property>
@@ -22,7 +21,6 @@
 
 	<container qualifier="wlp-remote-8553">
 		<configuration>
-			<property name="wlpHome">${user.home}/software/wlp-8.5.5.3/wlp</property>
 			<property name="hostName">localhost</property>
 			<property name="serverName">defaultServer</property>
 			<property name="username">admin</property>

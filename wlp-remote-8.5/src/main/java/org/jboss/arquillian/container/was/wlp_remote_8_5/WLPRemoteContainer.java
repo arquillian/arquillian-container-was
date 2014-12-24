@@ -101,7 +101,6 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     @Override
     public ProtocolMetaData deploy(Archive<?> archive) throws DeploymentException {
-
         String archiveName = archive.getName();
         String archiveType = createDeploymentType(archiveName);
         String deployName = createDeploymentName(archiveName);
@@ -113,19 +112,17 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
                     + ".  Valid archive types are ear, war, and eba.");
         }
 
-        String appDir = getAppDirectory();
-        File exportedArchiveLocation = new File(appDir, archiveName);
-
-        archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
-
         try {
-            restClient.deploy(exportedArchiveLocation);
+            File exportedArchiveLocation = new File(System.getProperty("java.io.tmpdir"), archiveName);
+            archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
+            restClient.deploy(exportedArchiveLocation);            
+            exportedArchiveLocation.deleteOnExit();
         } catch (Exception e) {
             throw new DeploymentException(e.getMessage());
-        }
+        } 
 
         // Wait until the application is deployed and available
-        waitForApplicationTargetState(deployName, true, containerConfiguration.getAppDeployTimeout());
+        waitForApplicationToStartup(deployName, containerConfiguration.getAppDeployTimeout());
 
         // Return metadata on how to contact the deployed application
         ProtocolMetaData metaData = new ProtocolMetaData();
@@ -147,10 +144,8 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         String archiveName = archive.getName();
-        String appDir = getAppDirectory();
-        File exportedArchiveLocation = new File(appDir, archiveName);
         try {
-            restClient.undeploy(exportedArchiveLocation);
+            restClient.undeploy(archiveName);
         } catch (Exception e) {
             throw new DeploymentException("Error undeploying application " + archiveName + " " + e);
         }
@@ -163,14 +158,10 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     @Override
     public void deploy(Descriptor descriptor) throws DeploymentException {
-        // TODO Auto-generated method stub
-
     }
 
     @Override
     public void undeploy(Descriptor descriptor) throws DeploymentException {
-        // TODO Auto-generated method stub
-
     }
 
     private String createDeploymentName(String archiveName) {
@@ -181,16 +172,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         return archiveName.substring(archiveName.lastIndexOf(".") + 1);
     }
 
-    private String getAppDirectory() {
-        String appDir = containerConfiguration.getWlpHome() + "/usr/servers/" + containerConfiguration.getServerName()
-                + "/dropins";
-        if (log.isLoggable(Level.FINER))
-            log.finer("appDir: " + appDir);
-        return appDir;
-    }
-
-    private void waitForApplicationTargetState(String applicationName, boolean targetState, int timeout)
-            throws DeploymentException {
+    private void waitForApplicationToStartup(String applicationName, int timeout) throws DeploymentException {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "waitForMBeanTargetState");
             log.finer("Timeout is " + timeout);

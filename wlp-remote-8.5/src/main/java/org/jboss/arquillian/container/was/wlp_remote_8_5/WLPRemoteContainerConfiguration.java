@@ -20,9 +20,13 @@ import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
 
 /**
- * <p>WLPremoteContainerConfiguration</p>
+ * <p>
+ * WLPremoteContainerConfiguration
+ * </p>
  * 
- * <p>Adapted from WLPManagedContainerconfiguration</p>
+ * <p>
+ * Adapted from WLPManagedContainerconfiguration
+ * </p>
  *
  * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
  * @version $Revision: $
@@ -38,17 +42,12 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
     private String username;
 
     private String password;
-    private String hostName = "localhost";
+    private String hostName;
     private int httpsPort = 9443;
-    private String wlpHome;
     private boolean outputToConsole = true;
 
     @Override
     public void validate() throws ConfigurationException {
-        // Validate hostName
-        if (wlpHome == null) {
-            throw new ConfigurationException("wlpHome is required for initialization");
-        }
 
         if (hostName == null || hostName.equals("")) {
             throw new ConfigurationException("hostName is required for initialization");
@@ -149,14 +148,6 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
 
     public void setHttpsPort(int httpsPort) {
         this.httpsPort = httpsPort;
-    }
-
-    public String getWlpHome() {
-        return wlpHome;
-    }
-
-    public void setWlpHome(String wlpHome) {
-        this.wlpHome = wlpHome;
     }
 
 }

@@ -63,7 +63,7 @@ public class WLPRestClient {
             log.entering(className, "deploy");
         }
 
-        String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
+        String deployPath = "${wlp.user.dir}/servers/" + configuration.getServerName() + "/dropins/"
                 + archive.getName();
 
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
@@ -89,18 +89,18 @@ public class WLPRestClient {
      * Deletes the specified application from the servers dropins directory. WLP
      * will detect this and then undeploy it.
      * 
-     * @param archive
+     * @param String - applicationName
      * @throws ClientProtocolException
      * @throws IOException
      */
-    public void undeploy(File archive) throws ClientProtocolException, IOException {
+    public void undeploy(String applicationName) throws ClientProtocolException, IOException {
 
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "undeploy");
         }
 
-        String deployPath = configuration.getWlpHome() + "/usr/servers/" + configuration.getServerName() + "/dropins/"
-                + archive.getName();
+        String deployPath = "${wlp.user.dir}/servers/" + configuration.getServerName() + "/dropins/"
+                + applicationName;
 
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + FILE_ENDPOINT + URLEncoder.encode(deployPath, UTF_8);
@@ -109,7 +109,7 @@ public class WLPRestClient {
                 .returnResponse().getStatusLine().getStatusCode();
 
         if (result == HttpStatus.SC_NO_CONTENT) {
-            log.fine("File " + archive.getName() + " was deleted");
+            log.fine("File " + applicationName + " was deleted");
             // wait to allow the server to detect the app has been deleted
             try {
                 Thread.sleep(3000);
