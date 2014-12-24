@@ -35,8 +35,12 @@ public class WLPRestClient {
 
     private WLPRemoteContainerConfiguration configuration;
 
-    private static final String FILE_ENDPOINT = "/IBMJMXConnectorREST/file/";
-    private static final String MBEANS_ENDPOINT = "/IBMJMXConnectorREST/mbeans/";
+    private static final String IBMJMX_CONNECTOR_REST = "/IBMJMXConnectorREST";
+    private static final String FILE_ENDPOINT = IBMJMX_CONNECTOR_REST + "/file/";
+    private static final String MBEANS_ENDPOINT = IBMJMX_CONNECTOR_REST + "/mbeans/";
+    private static final String UTF_8 = "UTF-8";
+    private static final String STARTED = "STARTED";
+
     private final Executor executor;
 
     public WLPRestClient(WLPRemoteContainerConfiguration configuration) {
@@ -63,7 +67,7 @@ public class WLPRestClient {
                 + archive.getName();
 
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT + URLEncoder.encode(deployPath);
+                + FILE_ENDPOINT + URLEncoder.encode(deployPath, UTF_8);
 
         int result = executor
                 .execute(
@@ -99,7 +103,7 @@ public class WLPRestClient {
                 + archive.getName();
 
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT + URLEncoder.encode(deployPath);
+                + FILE_ENDPOINT + URLEncoder.encode(deployPath, UTF_8);
 
         int result = executor.execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
                 .returnResponse().getStatusLine().getStatusCode();
@@ -110,7 +114,7 @@ public class WLPRestClient {
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.severe("Thread sleep error " + e);
             }
         }
 
@@ -131,8 +135,7 @@ public class WLPRestClient {
             log.entering(className, "isServerUp");
         }
 
-        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + "/IBMJMXConnectorREST";
+        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort() + IBMJMX_CONNECTOR_REST;
 
         int result = executor.execute(Request.Get(hostName)).returnResponse().getStatusLine().getStatusCode();
 
@@ -178,7 +181,7 @@ public class WLPRestClient {
             log.exiting(className, "isApplicationStarted");
         }
 
-        if ("STARTED".equals(status)) {
+        if (STARTED.equals(status)) {
             log.fine("Application is started");
             return true;
         } else {
@@ -196,39 +199,13 @@ public class WLPRestClient {
             Map result = mapper.readValue(jsonString.getBytes(), Map.class);
             status = (String) result.get("value");
         } catch (JsonParseException e) {
-            e.printStackTrace();
+            log.severe("Error parsing Json response " + e);
         } catch (JsonMappingException e) {
-            e.printStackTrace();
+            log.severe("Error mapping Json response " + e);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.severe("IOException while parsing Json response " + e);
         }
         return status;
-    }
-
-    public static void main(String[] args) throws Exception {
-        File f = new File(
-                "/home/tony/git-projects/websphere-stuff/prmui-promotion-service/ear/target/prmui-promotion-service-ear.ear");
-        WLPRemoteContainerConfiguration config = new WLPRemoteContainerConfiguration();
-        config.setHttpsPort(9443);
-        config.setHostName("localhost");
-        config.setUsername("admin");
-        config.setPassword("admin");
-        config.setServerName("defaultServer");
-        config.setWlpHome("/home/tony/software/wlp-8.5.5.4/wlp");
-        WLPRestClient client = new WLPRestClient(config);
-        boolean up = client.isServerUp();
-        assert true == up;
-
-        client.deploy(f);
-
-        Thread.sleep(2000);
-
-        boolean started = client.isApplicationStarted("prmui-promotion-service-ear");
-        assert true == started;
-
-        Thread.sleep(2000);
-
-        client.undeploy(f);
     }
 
 }

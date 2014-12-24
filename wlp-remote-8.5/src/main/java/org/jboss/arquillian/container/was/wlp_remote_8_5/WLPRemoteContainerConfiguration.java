@@ -20,7 +20,9 @@ import org.jboss.arquillian.container.spi.ConfigurationException;
 import org.jboss.arquillian.container.spi.client.container.ContainerConfiguration;
 
 /**
- * WLPManagedContainerConfiguration
+ * <p>WLPremoteContainerConfiguration</p>
+ * 
+ * <p>Adapted from WLPManagedContainerconfiguration</p>
  *
  * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
  * @version $Revision: $
@@ -48,7 +50,7 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
             throw new ConfigurationException("wlpHome is required for initialization");
         }
 
-        if (hostName.equals("")) {
+        if (hostName == null || hostName.equals("")) {
             throw new ConfigurationException("hostName is required for initialization");
         }
 

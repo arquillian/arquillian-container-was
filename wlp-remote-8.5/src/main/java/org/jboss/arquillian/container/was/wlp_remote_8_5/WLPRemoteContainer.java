@@ -5,9 +5,6 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.management.MBeanServerConnection;
-import javax.management.remote.JMXConnector;
-
 import org.apache.http.client.ClientProtocolException;
 import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.container.spi.client.container.DeploymentException;
@@ -21,8 +18,11 @@ import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
 
 /**
+ * <p>
+ * WLPRemoteContainer
+ * </p>
  * 
- * @author Tony Ayres
+ * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
  *
  */
 public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContainerConfiguration> {
