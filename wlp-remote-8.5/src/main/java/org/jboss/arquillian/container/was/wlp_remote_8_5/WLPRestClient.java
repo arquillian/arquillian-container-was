@@ -166,12 +166,7 @@ public class WLPRestClient {
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp");
         }
-
-        if (isSuccessful(result)) {
-            return true;
-        } else {
-            return false;
-        }
+        return isSuccessful(result);
     }
 
     /**
@@ -236,15 +231,13 @@ public class WLPRestClient {
         }
 
         if (STARTED.equals(status)) {
-            log.fine("Application is started");
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     /*
-     * Get the state response from the json returned
+     * Get a value from a json response.
      */
     private String parseJsonResponse(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();
