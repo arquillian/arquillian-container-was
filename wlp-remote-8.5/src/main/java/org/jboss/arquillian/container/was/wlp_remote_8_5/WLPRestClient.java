@@ -8,7 +8,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
@@ -76,13 +75,12 @@ public class WLPRestClient {
                         .bodyFile(archive, ContentType.DEFAULT_BINARY)).returnResponse();
 
         if (log.isLoggable(Level.FINE)) {
-            log.fine("While deploying file " + archive.getName() + ", server returned response code "
+            log.fine("While deploying file " + archive.getName() + ", server returned response: "
                     + result.getStatusLine().getStatusCode());
         }
 
-        if (!(result.getStatusLine().getStatusCode() >= HttpStatus.SC_OK && result.getStatusLine().getStatusCode() <= HttpStatus.SC_NO_CONTENT)) {
-            throw new ClientProtocolException("Could not deploy application to server, server returned response: "
-                    + result.getStatusLine());
+        if (!isSuccessful(result)) {
+            throw new ClientProtocolException("Could not deploy application to server, server returned response: " + result);
         }
 
         if (log.isLoggable(Level.FINER)) {
@@ -112,10 +110,10 @@ public class WLPRestClient {
         String serverRestEndpoint = String.format("https://%s:%d%s%s", configuration.getHostName(),
                 configuration.getHttpsPort(), FILE_ENDPOINT, URLEncoder.encode(deployPath, UTF_8));
 
-        int result = executor.execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
-                .returnResponse().getStatusLine().getStatusCode();
+        HttpResponse result = executor.execute(
+                Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1)).returnResponse();
 
-        if (result == HttpStatus.SC_NO_CONTENT) {
+        if (isSuccessful(result)) {
             log.fine("File " + applicationName + " was deleted");
             // wait to allow the server to detect the app has been deleted
             try {
@@ -123,6 +121,9 @@ public class WLPRestClient {
             } catch (InterruptedException e) {
                 log.severe("Thread sleep error " + e);
             }
+        } else {
+            throw new ClientProtocolException("Unable to undeploy application " + applicationName
+                    + ", server returned response: " + result.getStatusLine());
         }
 
         if (log.isLoggable(Level.FINER)) {
@@ -144,17 +145,41 @@ public class WLPRestClient {
         String hostName = String.format("https://%s:%d%s", configuration.getHostName(), configuration.getHttpsPort(),
                 IBMJMX_CONNECTOR_REST);
 
-        int result = executor.execute(Request.Get(hostName)).returnResponse().getStatusLine().getStatusCode();
+        HttpResponse result = executor.execute(Request.Get(hostName)).returnResponse();
 
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp");
         }
 
-        if (result == 200) {
+        if (isSuccessful(result)) {
             return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * Queries the rest api for the servers name.
+     * 
+     * @return the name of the running server e.g. defaultServer
+     * @throws IOException
+     * @throws ClientProtocolException
+     */
+    public String getServerName() throws ClientProtocolException, IOException {
+        if (log.isLoggable(Level.FINER)) {
+            log.entering(className, "getServerName");
+        }
+
+        String restEndpoint = String.format("https://%s:%d%sWebSphere:feature=kernel,name=ServerInfo/attributes/Name",
+                configuration.getHostName(), configuration.getHttpsPort(), MBEANS_ENDPOINT);
+
+        String jsonResponse = executor.execute(Request.Get(restEndpoint)).returnContent().asString();
+        String serverName = parseJsonResponse(jsonResponse);
+
+        if (log.isLoggable(Level.FINER)) {
+            log.exiting(className, "isServerUp");
+        }
+        return serverName;
     }
 
     /**
@@ -174,16 +199,19 @@ public class WLPRestClient {
                 "https://%s:%d%sWebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=%s/attributes/State",
                 configuration.getHostName(), configuration.getHttpsPort(), MBEANS_ENDPOINT, applicationName);
 
-        log.fine(restEndpoint);
         String status = "";
         try {
             String jsonResponse = executor.execute(Request.Get(restEndpoint)).returnContent().asString();
             status = parseJsonResponse(jsonResponse);
         } catch (ClientProtocolException e) {
-            log.severe("Error occurred while checking if application " + applicationName + " is already started " + e);
+            // This exception is expected if the application hasn't been
+            // deployed yet as its MBean won't exist.
+            // We expect this and can continue, set status to error.
+            log.finest("Expected error occurred while checking if application " + applicationName
+                    + " is already started, app may not have been deployed yet. Ok to continue. " + e);
             status = "error";
         } catch (IOException e) {
-            log.severe("Error occurred while checking if application " + applicationName + " is already started " + e);
+            log.severe("IOException occurred while checking if application " + applicationName + " is already started " + e);
             status = "error";
         }
 
@@ -204,10 +232,10 @@ public class WLPRestClient {
      */
     private String parseJsonResponse(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();
-        String status = "";
+        String value = "";
         try {
             Map result = mapper.readValue(jsonString.getBytes(), Map.class);
-            status = (String) result.get("value");
+            value = (String) result.get("value");
         } catch (JsonParseException e) {
             log.severe("Error parsing Json response " + e);
         } catch (JsonMappingException e) {
@@ -215,7 +243,21 @@ public class WLPRestClient {
         } catch (IOException e) {
             log.severe("IOException while parsing Json response " + e);
         }
-        return status;
+        return value;
+    }
+
+    /**
+     * Tests if a HttpResponse contains a 2xx response code
+     * 
+     * @param response
+     * @return true if the response code is a 2xx code.
+     */
+    private boolean isSuccessful(HttpResponse response) {
+        if (response.getStatusLine().getStatusCode() >= HttpStatus.SC_OK
+                && response.getStatusLine().getStatusCode() <= HttpStatus.SC_NO_CONTENT) {
+            return true;
+        }
+        return false;
     }
 
 }

@@ -61,14 +61,24 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
         try {
             ready = restClient.isServerUp();
+
+            if (!ready) {
+                throw new LifecycleException("Remote server is not started");
+            }
+
+            String arqServerName = containerConfiguration.getServerName();
+            String remoteServerName = restClient.getServerName();
+
+            if (!arqServerName.equals(remoteServerName)) {
+                throw new LifecycleException("The serverName (" + arqServerName
+                        + ") specified in arquillian.xml does not match the server name of the remote server ("
+                        + remoteServerName + ").");
+            }
+
         } catch (ClientProtocolException e) {
             throw new LifecycleException("Could not determine remote server status : " + e.getMessage(), e);
         } catch (IOException e) {
             throw new LifecycleException("Could not determine remote server status : " + e.getMessage(), e);
-        }
-
-        if (!ready) {
-            throw new LifecycleException("Remote server is not started");
         }
     }
 
