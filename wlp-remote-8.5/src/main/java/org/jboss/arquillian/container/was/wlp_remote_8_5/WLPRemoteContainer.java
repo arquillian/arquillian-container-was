@@ -62,9 +62,9 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         try {
             ready = restClient.isServerUp();
         } catch (ClientProtocolException e) {
-            throw new LifecycleException("Could not determine remote server status : " + e);
+            throw new LifecycleException("Could not determine remote server status : " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new LifecycleException("Could not determine remote server status : " + e);
+            throw new LifecycleException("Could not determine remote server status : " + e.getMessage(), e);
         }
 
         if (!ready) {
