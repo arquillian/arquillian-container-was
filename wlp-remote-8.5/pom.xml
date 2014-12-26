@@ -49,7 +49,7 @@
 						</configuration>
 					</execution>
 
-					<execution>
+					<!-- <execution>
 						<id>wlp-8553-test</id>
 						<goals>
 							<goal>test</goal>
@@ -61,7 +61,7 @@
 								<arquillian.launch>wlp-remote-8553</arquillian.launch>
 							</systemPropertyVariables>
 						</configuration>
-					</execution>
+					</execution> -->
 
 				</executions>
 			</plugin>

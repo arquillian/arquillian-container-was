@@ -8,6 +8,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.ClientProtocolException;
@@ -63,24 +65,28 @@ public class WLPRestClient {
             log.entering(className, "deploy");
         }
 
-        String deployPath = "${wlp.user.dir}/servers/" + configuration.getServerName() + "/dropins/"
-                + archive.getName();
+        String deployPath = String.format("${wlp.user.dir}/servers/%s/dropins/%s", configuration.getServerName(),
+                archive.getName());
 
-        String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT + URLEncoder.encode(deployPath, UTF_8);
+        String serverRestEndpoint = String.format("https://%s:%d%s%s", configuration.getHostName(),
+                configuration.getHttpsPort(), FILE_ENDPOINT, URLEncoder.encode(deployPath, UTF_8));
 
-        int result = executor
-                .execute(
-                        Request.Post(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1)
-                                .bodyFile(archive, ContentType.DEFAULT_BINARY)).returnResponse().getStatusLine()
-                .getStatusCode();
+        HttpResponse result = executor.execute(
+                Request.Post(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1)
+                        .bodyFile(archive, ContentType.DEFAULT_BINARY)).returnResponse();
 
-        if (log.isLoggable(Level.INFO)) {
-            log.info("While deploying file " + archive.getName() + ", server returned response code " + result);
+        if (log.isLoggable(Level.FINE)) {
+            log.fine("While deploying file " + archive.getName() + ", server returned response code "
+                    + result.getStatusLine().getStatusCode());
+        }
+
+        if (!(result.getStatusLine().getStatusCode() >= HttpStatus.SC_OK && result.getStatusLine().getStatusCode() <= HttpStatus.SC_NO_CONTENT)) {
+            throw new ClientProtocolException("Could not deploy application to server, server returned response: "
+                    + result.getStatusLine());
         }
 
         if (log.isLoggable(Level.FINER)) {
-            log.entering(className, "deploy");
+            log.exiting(className, "deploy");
         }
 
     }
@@ -89,7 +95,8 @@ public class WLPRestClient {
      * Deletes the specified application from the servers dropins directory. WLP
      * will detect this and then undeploy it.
      * 
-     * @param String - applicationName
+     * @param String
+     *            - applicationName
      * @throws ClientProtocolException
      * @throws IOException
      */
@@ -99,11 +106,11 @@ public class WLPRestClient {
             log.entering(className, "undeploy");
         }
 
-        String deployPath = "${wlp.user.dir}/servers/" + configuration.getServerName() + "/dropins/"
-                + applicationName;
+        String deployPath = String.format("${wlp.user.dir}/servers/%s/dropins/%s", configuration.getServerName(),
+                applicationName);
 
-        String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + FILE_ENDPOINT + URLEncoder.encode(deployPath, UTF_8);
+        String serverRestEndpoint = String.format("https://%s:%d%s%s", configuration.getHostName(),
+                configuration.getHttpsPort(), FILE_ENDPOINT, URLEncoder.encode(deployPath, UTF_8));
 
         int result = executor.execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
                 .returnResponse().getStatusLine().getStatusCode();
@@ -121,7 +128,6 @@ public class WLPRestClient {
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp", result);
         }
-
     }
 
     /**
@@ -135,7 +141,8 @@ public class WLPRestClient {
             log.entering(className, "isServerUp");
         }
 
-        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort() + IBMJMX_CONNECTOR_REST;
+        String hostName = String.format("https://%s:%d%s", configuration.getHostName(), configuration.getHttpsPort(),
+                IBMJMX_CONNECTOR_REST);
 
         int result = executor.execute(Request.Get(hostName)).returnResponse().getStatusLine().getStatusCode();
 
@@ -163,17 +170,20 @@ public class WLPRestClient {
             log.entering(className, "isApplicationStarted");
         }
 
-        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort() + MBEANS_ENDPOINT
-                + "WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName
-                + "/attributes/State";
+        String restEndpoint = String.format(
+                "https://%s:%d%sWebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=%s/attributes/State",
+                configuration.getHostName(), configuration.getHttpsPort(), MBEANS_ENDPOINT, applicationName);
 
+        log.fine(restEndpoint);
         String status = "";
         try {
-            String jsonResponse = executor.execute(Request.Get(hostName)).returnContent().asString();
+            String jsonResponse = executor.execute(Request.Get(restEndpoint)).returnContent().asString();
             status = parseJsonResponse(jsonResponse);
         } catch (ClientProtocolException e) {
+            log.severe("Error occurred while checking if application " + applicationName + " is already started " + e);
             status = "error";
         } catch (IOException e) {
+            log.severe("Error occurred while checking if application " + applicationName + " is already started " + e);
             status = "error";
         }
 

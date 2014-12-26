@@ -104,7 +104,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "deploy");
         }
-        
+
         String archiveName = archive.getName();
         String archiveType = createDeploymentType(archiveName);
         String deployName = createDeploymentName(archiveName);
@@ -119,11 +119,11 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         try {
             File exportedArchiveLocation = new File(System.getProperty("java.io.tmpdir"), archiveName);
             archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
-            restClient.deploy(exportedArchiveLocation);            
+            restClient.deploy(exportedArchiveLocation);
             exportedArchiveLocation.deleteOnExit();
         } catch (Exception e) {
             throw new DeploymentException(e.getMessage());
-        } 
+        }
 
         // Wait until the application is deployed and available
         waitForApplicationToStartup(deployName, containerConfiguration.getAppDeployTimeout());
@@ -188,7 +188,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
                 Thread.sleep(100);
                 ready = restClient.isApplicationStarted(applicationName);
                 if (timeleft <= 0)
-                    throw new DeploymentException("Timeout while waiting for ApplicationState to reach 'STARTED");
+                    throw new DeploymentException("Timeout while waiting for ApplicationState to reach 'STARTED'");
                 timeleft -= 100;
             }
         } catch (InterruptedException e) {
