@@ -72,6 +72,7 @@
                 <module>was-remote-8</module>
                 <module>was-remote-8.5</module>
                 <module>wlp-managed-8.5</module>
+                <module>wlp-remote-8.5</module>
             </modules>
         </profile>
         <profile>
@@ -81,7 +82,8 @@
             </activation>
             <modules>
                 <module>wlp-managed-8.5</module>
+                <module>wlp-remote-8.5</module>
             </modules>
         </profile>
-    </profiles>
+    </profiles>    
 </project>
