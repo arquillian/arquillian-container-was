@@ -44,10 +44,10 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
     @Override
     public void validate() throws ConfigurationException {
         // Validate hostName
-        if(wlpHome == null) {
+        if (wlpHome == null) {
             throw new ConfigurationException("wlpHome is required for initialization");
         }
-        
+
         if (hostName.equals("")) {
             throw new ConfigurationException("hostName is required for initialization");
         }

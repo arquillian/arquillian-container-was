@@ -26,4 +26,3 @@ public class Greeter {
         return "Hello, " + name + "!";
     }
 }
-

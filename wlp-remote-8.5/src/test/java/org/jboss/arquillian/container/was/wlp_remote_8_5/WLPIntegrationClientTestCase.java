@@ -43,46 +43,37 @@ import org.junit.runner.RunWith;
  * @version $Revision: $
  */
 @RunWith(Arquillian.class)
-public class WLPIntegrationClientTestCase
-{
-   @Deployment(testable=false)
-   public static EnterpriseArchive createDeployment() 
-   {
-      return ShrinkWrap.create(EnterpriseArchive.class, "test.ear")
-            .addAsModule(ShrinkWrap.create(WebArchive.class, "test.war")
-                              .addClass(HelloServlet.class))
-            .addAsModule(ShrinkWrap.create(JavaArchive.class, "test.jar")
-                              .addClass(WLPIntegrationClientTestCase.class)
-                              .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml"));
-   }
-   
-   @Test
-   public void shouldBeAbleToInvokeServletInDeployedWebApp(@ArquillianResource URL url) throws Exception
-   {
-      String body = readAllAndClose(
-            new URL(url, HelloServlet.URL_PATTERN).openStream());
-      
-      Assert.assertEquals(
-            "Verify that the servlet was deployed and returns expected result",
-            HelloServlet.MESSAGE,
-            body);
-   }
-   
-   private String readAllAndClose(InputStream is) throws Exception 
-   {
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      try
-      {
-         int read;
-         while( (read = is.read()) != -1)
-         {
-            out.write(read);
-         }
-      }
-      finally 
-      {
-         try { is.close(); } catch (Exception e) { }
-      }
-      return out.toString();
-   }
+public class WLPIntegrationClientTestCase {
+    @Deployment(testable = false)
+    public static EnterpriseArchive createDeployment() {
+        return ShrinkWrap
+                .create(EnterpriseArchive.class, "test.ear")
+                .addAsModule(ShrinkWrap.create(WebArchive.class, "test.war").addClass(HelloServlet.class))
+                .addAsModule(
+                        ShrinkWrap.create(JavaArchive.class, "test.jar").addClass(WLPIntegrationClientTestCase.class)
+                                .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml"));
+    }
+
+    @Test
+    public void shouldBeAbleToInvokeServletInDeployedWebApp(@ArquillianResource URL url) throws Exception {
+        String body = readAllAndClose(new URL(url, HelloServlet.URL_PATTERN).openStream());
+
+        Assert.assertEquals("Verify that the servlet was deployed and returns expected result", HelloServlet.MESSAGE, body);
+    }
+
+    private String readAllAndClose(InputStream is) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            int read;
+            while ((read = is.read()) != -1) {
+                out.write(read);
+            }
+        } finally {
+            try {
+                is.close();
+            } catch (Exception e) {
+            }
+        }
+        return out.toString();
+    }
 }

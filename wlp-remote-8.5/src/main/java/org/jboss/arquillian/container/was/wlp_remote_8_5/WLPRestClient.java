@@ -101,8 +101,7 @@ public class WLPRestClient {
         String serverRestEndpoint = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
                 + FILE_ENDPOINT + URLEncoder.encode(deployPath);
 
-        int result = executor
-                .execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
+        int result = executor.execute(Request.Delete(serverRestEndpoint).useExpectContinue().version(HttpVersion.HTTP_1_1))
                 .returnResponse().getStatusLine().getStatusCode();
 
         if (result == HttpStatus.SC_NO_CONTENT) {
@@ -161,9 +160,9 @@ public class WLPRestClient {
             log.entering(className, "isApplicationStarted");
         }
 
-        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort()
-                + MBEANS_ENDPOINT + "WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name="
-                + applicationName + "/attributes/State";
+        String hostName = "https://" + configuration.getHostName() + ":" + configuration.getHttpsPort() + MBEANS_ENDPOINT
+                + "WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName
+                + "/attributes/State";
 
         String status = "";
         try {
@@ -188,7 +187,7 @@ public class WLPRestClient {
     }
 
     /*
-     * Get the state response from the json returned 
+     * Get the state response from the json returned
      */
     private String parseJsonResponse(String jsonString) {
         ObjectMapper mapper = new ObjectMapper();

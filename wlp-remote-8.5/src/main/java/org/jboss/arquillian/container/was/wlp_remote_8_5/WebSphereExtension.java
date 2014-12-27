@@ -26,12 +26,10 @@ import org.jboss.arquillian.core.spi.LoadableExtension;
  * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
  * @version $Revision: $
  */
-public class WebSphereExtension implements LoadableExtension
-{
-   @Override
-   public void register(ExtensionBuilder builder)
-   {
-      builder.service(DeployableContainer.class, WLPRemoteContainer.class);
-   }
+public class WebSphereExtension implements LoadableExtension {
+    @Override
+    public void register(ExtensionBuilder builder) {
+        builder.service(DeployableContainer.class, WLPRemoteContainer.class);
+    }
 
 }

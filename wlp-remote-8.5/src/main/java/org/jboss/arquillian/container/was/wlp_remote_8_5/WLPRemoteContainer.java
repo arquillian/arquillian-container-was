@@ -56,17 +56,17 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
     @Override
     public void start() throws LifecycleException {
-        
+
         boolean ready;
-        
+
         try {
             ready = restClient.isServerUp();
         } catch (ClientProtocolException e) {
-            throw new LifecycleException("Could not determine remote server status : "+e);
+            throw new LifecycleException("Could not determine remote server status : " + e);
         } catch (IOException e) {
-            throw new LifecycleException("Could not determine remote server status : "+e);
+            throw new LifecycleException("Could not determine remote server status : " + e);
         }
-        
+
         if (!ready) {
             throw new LifecycleException("Remote server is not started");
         }
@@ -76,11 +76,11 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
     public void stop() throws LifecycleException {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "stop");
-         }
-         
-         if (log.isLoggable(Level.FINER)) {
+        }
+
+        if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "stop");
-         }
+        }
 
     }
 
@@ -129,8 +129,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
 
         // Return metadata on how to contact the deployed application
         ProtocolMetaData metaData = new ProtocolMetaData();
-        HTTPContext httpContext = new HTTPContext(containerConfiguration.getHostName(),
-                containerConfiguration.getHttpPort());
+        HTTPContext httpContext = new HTTPContext(containerConfiguration.getHostName(), containerConfiguration.getHttpPort());
         httpContext.add(new Servlet("ArquillianServletRunner", deployName));
         metaData.addContext(httpContext);
 
@@ -146,16 +145,16 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "undeploy");
         }
-        
+
         String archiveName = archive.getName();
         String appDir = getAppDirectory();
         File exportedArchiveLocation = new File(appDir, archiveName);
         try {
             restClient.undeploy(exportedArchiveLocation);
         } catch (Exception e) {
-            throw new DeploymentException("Error undeploying application "+archiveName+" "+e);
+            throw new DeploymentException("Error undeploying application " + archiveName + " " + e);
         }
-        
+
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "undeploy");
         }
@@ -194,10 +193,10 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
             throws DeploymentException {
         if (log.isLoggable(Level.FINER)) {
             log.entering(className, "waitForMBeanTargetState");
-            log.finer("Timeout is "+timeout);
+            log.finer("Timeout is " + timeout);
         }
-        
-        try {           
+
+        try {
             int timeleft = timeout * 1000;
             boolean ready = false;
             while (!ready) {
@@ -207,8 +206,8 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
                     throw new DeploymentException("Timeout while waiting for ApplicationState to reach 'STARTED");
                 timeleft -= 100;
             }
-        } catch (InterruptedException e) {         
-            throw new DeploymentException("Error occurred while while waiting for ApplicationState to reach STARTED "+e);
+        } catch (InterruptedException e) {
+            throw new DeploymentException("Error occurred while while waiting for ApplicationState to reach STARTED " + e);
         }
 
         if (log.isLoggable(Level.FINER)) {
