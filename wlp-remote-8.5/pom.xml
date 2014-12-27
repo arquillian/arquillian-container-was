@@ -14,7 +14,7 @@
 	<description>WebSphere Liberty Profile 8.5 Remote Container integration for the Arquillian Project</description>
 
 	<properties>
-		<skipTests>false</skipTests>
+		<skipTests>true</skipTests>
 		<version.jackson>2.4.4</version.jackson>
 		<version.apache.fluent.hc>4.3.6</version.apache.fluent.hc>
 	</properties>
@@ -48,20 +48,6 @@
 							</systemPropertyVariables>
 						</configuration>
 					</execution>
-
-					<!-- <execution>
-						<id>wlp-8553-test</id>
-						<goals>
-							<goal>test</goal>
-						</goals>
-						<configuration>
-							<skip>${skipTests}</skip>
-							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-8553-deployment-test</reportsDirectory>
-							<systemPropertyVariables>
-								<arquillian.launch>wlp-remote-8553</arquillian.launch>
-							</systemPropertyVariables>
-						</configuration>
-					</execution> -->
 
 				</executions>
 			</plugin>
