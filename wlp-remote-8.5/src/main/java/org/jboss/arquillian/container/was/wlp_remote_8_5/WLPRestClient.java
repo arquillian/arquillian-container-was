@@ -14,7 +14,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */package org.jboss.arquillian.container.was.wlp_remote_8_5;
+ */
+package org.jboss.arquillian.container.was.wlp_remote_8_5;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,7 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 
- * This is a wrapper around the Websphere Liberty JMX Rest API.
+ * This is a wrapper around the WebSphere Liberty JMX Rest API.
  * 
  * @author <a href="mailto:tayres@gmail.com">Tony Ayres</a>
  *
@@ -131,12 +132,6 @@ public class WLPRestClient {
 
         if (isSuccessful(result)) {
             log.fine("File " + applicationName + " was deleted");
-            // wait to allow the server to detect the app has been deleted
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                log.severe("Thread sleep error " + e);
-            }
         } else {
             throw new ClientProtocolException("Unable to undeploy application " + applicationName
                     + ", server returned response: " + result.getStatusLine());
@@ -226,14 +221,19 @@ public class WLPRestClient {
             status = "error";
         }
 
-        if (log.isLoggable(Level.FINER)) {
-            log.exiting(className, "isApplicationStarted");
-        }
+        boolean applicationState;
 
         if (STARTED.equals(status)) {
-            return true;
+            applicationState = true;
+        } else {
+            applicationState = false;
         }
-        return false;
+
+        if (log.isLoggable(Level.FINER)) {
+            log.exiting(className, "isApplicationStarted", applicationState);
+        }
+
+        return applicationState;
     }
 
     /*

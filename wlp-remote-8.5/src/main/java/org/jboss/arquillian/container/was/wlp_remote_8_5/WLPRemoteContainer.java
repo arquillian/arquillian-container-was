@@ -153,7 +153,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         // Wait until the application is deployed and available
-        waitForApplicationToStartup(deployName, containerConfiguration.getAppDeployTimeout());
+        waitForApplicationTargetState(deployName, true, containerConfiguration.getAppDeployTimeout());
 
         // Return metadata on how to contact the deployed application
         ProtocolMetaData metaData = new ProtocolMetaData();
@@ -175,11 +175,16 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         String archiveName = archive.getName();
+        String deployName = createDeploymentName(archiveName);
+
         try {
             restClient.undeploy(archiveName);
         } catch (Exception e) {
             throw new DeploymentException("Error undeploying application " + archiveName + " " + e);
         }
+
+        // Wait until the application is undeployed
+        waitForApplicationTargetState(deployName, false, containerConfiguration.getAppUndeployTimeout());
 
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "undeploy");
@@ -202,18 +207,17 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         return archiveName.substring(archiveName.lastIndexOf(".") + 1);
     }
 
-    private void waitForApplicationToStartup(String applicationName, int timeout) throws DeploymentException {
+    private void waitForApplicationTargetState(String applicationName, boolean targetState, int timeout) throws DeploymentException {
         if (log.isLoggable(Level.FINER)) {
-            log.entering(className, "waitForApplicationToStartup");
-            log.finer("Timeout is " + timeout);
+            log.entering(className, "waitForApplicationTargetState", new Object[]{applicationName, targetState, timeout});
         }
 
         try {
             int timeleft = timeout * 1000;
-            boolean ready = false;
-            while (!ready) {
+            boolean curState = !targetState;
+            while (curState != targetState) {
                 Thread.sleep(100);
-                ready = restClient.isApplicationStarted(applicationName);
+                curState = restClient.isApplicationStarted(applicationName);
                 if (timeleft <= 0)
                     throw new DeploymentException("Timeout while waiting for ApplicationState to reach 'STARTED'");
                 timeleft -= 100;
@@ -223,7 +227,7 @@ public class WLPRemoteContainer implements DeployableContainer<WLPRemoteContaine
         }
 
         if (log.isLoggable(Level.FINER)) {
-            log.exiting(className, "waitForApplicationToStartup");
+            log.exiting(className, "waitForApplicationTargetState");
         }
     }
 

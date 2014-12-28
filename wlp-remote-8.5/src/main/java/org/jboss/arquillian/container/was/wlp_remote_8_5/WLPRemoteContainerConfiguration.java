@@ -34,7 +34,6 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
 public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
 
     private String serverName = "defaultServer";
-    private int httpPort = 0;
     private int serverStartTimeout = 30;
     private int appDeployTimeout = 20;
     private int appUndeployTimeout = 2;
@@ -43,6 +42,7 @@ public class WLPRemoteContainerConfiguration implements ContainerConfiguration {
 
     private String password;
     private String hostName;
+    private int httpPort = 9080;
     private int httpsPort = 9443;
     private boolean outputToConsole = true;
 

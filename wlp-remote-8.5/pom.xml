@@ -10,7 +10,7 @@
 	<artifactId>arquillian-wlp-remote-8.5</artifactId>
 
 	<!-- Artifact Configuration -->
-	<name>Arquillian WebSphere Liberty Profile Remote 8.5</name>
+	<name>Arquillian Container WebSphere Liberty Profile Remote 8.5</name>
 	<description>WebSphere Liberty Profile 8.5 Remote Container integration for the Arquillian Project</description>
 
 	<properties>
