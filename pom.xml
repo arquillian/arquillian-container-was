@@ -15,7 +15,7 @@
     <!-- Artifact Configuration -->
     <groupId>org.jboss.arquillian.container</groupId>
     <artifactId>arquillian-parent-was</artifactId>
-    <version>1.0.0.Final-SNAPSHOT</version>
+    <version>1.0.0.Beta2</version>
     <packaging>pom</packaging>
     <name>Arquillian Container Parent WebSphere AS</name>
     <description>WebSphere AS Container integrations for the Arquillian Project</description>
@@ -86,4 +86,8 @@
             </modules>
         </profile>
     </profiles>    
+
+  <scm>
+    <tag>1.0.0.Beta2</tag>
+  </scm>
 </project>
