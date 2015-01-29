@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.jboss.arquillian.container</groupId>
 		<artifactId>arquillian-parent-was</artifactId>
-		<version>1.0.0.Beta2</version>
+		<version>1.0.0.Final-SNAPSHOT</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 	<artifactId>arquillian-wlp-remote-8.5</artifactId>
