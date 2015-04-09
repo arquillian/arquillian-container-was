@@ -9,13 +9,13 @@
 
 	<container qualifier="wlp-dropins-deployment" default="true">
 		<configuration>
-			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
+			<property name="wlpHome">${project.build.directory}/liberty/wlp/</property>
 			<property name="deployType">dropins</property>
 		</configuration>
 	</container>
 	<container qualifier="wlp-xml-deployment">
 		<configuration>
-			<property name="wlpHome">${user.home}/bin/wlp85next/</property>
+			<property name="wlpHome">${project.build.directory}/liberty/wlp/</property>
 			<property name="httpPort">9080</property>
 			<property name="deployType">xml</property>
 			<property name="javaVmArguments">-Xmx512m</property>
