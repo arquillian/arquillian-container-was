@@ -2,3 +2,7 @@ WebSphere Application Server Containers
 =======================================
 
 Issue Tracker: https://jira.jboss.org/jira/browse/ARQ
+
+For using the wlp-managed-8.5 container with IBM's Liberty Maven Plugin,
+please refer to the ARQ-1756 branch for inspiration:
+https://github.com/arquillian/arquillian-container-was/compare/master...gpoul:ARQ-1756
