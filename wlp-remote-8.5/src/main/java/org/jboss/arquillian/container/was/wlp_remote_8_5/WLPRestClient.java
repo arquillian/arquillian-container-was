@@ -157,6 +157,10 @@ public class WLPRestClient {
                 IBMJMX_CONNECTOR_REST);
 
         HttpResponse result = executor.execute(Request.Get(hostName)).returnResponse();
+        
+        if (!isSuccessful(result)) {
+            throw new ClientProtocolException("Could not successfully connect to REST endpoint, server returned response: " + result);
+        }
 
         if (log.isLoggable(Level.FINER)) {
             log.exiting(className, "isServerUp");
