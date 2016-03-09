@@ -26,6 +26,7 @@ public class JavaEENamespaceContext implements NamespaceContext {
 	public String getNamespaceURI(String prefix) {
         if (prefix == null) throw new NullPointerException("Null prefix");
         else if ("javaee".equals(prefix)) return "http://java.sun.com/xml/ns/javaee";
+        else if ("j2ee".equals(prefix)) return "http://java.sun.com/xml/ns/j2ee"; //J2EE 1.4 XML Schemas for backwards compatibility
         else if ("xml".equals(prefix)) return XMLConstants.XML_NS_URI;
         return XMLConstants.NULL_NS_URI;
 	}

@@ -392,7 +392,17 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
          xpath.setNamespaceContext(new JavaEENamespaceContext());
          NodeList webModules = (NodeList) xpath.evaluate("/javaee:application/javaee:module/javaee:web", 
              new InputSource(new StringReader(applicationDD)), XPathConstants.NODESET);
-         
+
+         if (webModules.getLength() == 0){ //search J2EE 1.4 XML Schemas for backwards compatibility
+            webModules = (NodeList) xpath.evaluate("/j2ee:application/j2ee:module/j2ee:web",
+                    new InputSource(new StringReader(applicationDD)), XPathConstants.NODESET);
+         }
+
+         if (webModules.getLength() == 0){ //search no-namespace for DTD-based descriptor for backwards compatibility
+            webModules = (NodeList) xpath.evaluate("/application/module/web",
+                    new InputSource(new StringReader(applicationDD)), XPathConstants.NODESET);
+         }
+
          for (int i=0; i < webModules.getLength(); i++) {
             Node webModule = webModules.item(i);
             
@@ -422,7 +432,17 @@ public class WebSphereRemoteContainer implements DeployableContainer<WebSphereRe
             xpath.setNamespaceContext(new JavaEENamespaceContext());
             NodeList servletMappings = (NodeList) xpath.evaluate("/javaee:web-app/javaee:servlet-mapping",
                 new InputSource(new StringReader(webmoduleDD)), XPathConstants.NODESET);
-            
+
+            if (servletMappings.getLength() == 0) { //search J2EE 1.4 XML Schemas for backwards compatibility
+               servletMappings = (NodeList) xpath.evaluate("/j2ee:web-app/j2ee:servlet-mapping",
+                       new InputSource(new StringReader(webmoduleDD)), XPathConstants.NODESET);
+            }
+
+            if (servletMappings.getLength() == 0) { //search no-namespace for DTD-based descriptor for backwards compatibility
+               servletMappings = (NodeList) xpath.evaluate("/web-app/servlet-mapping",
+                       new InputSource(new StringReader(webmoduleDD)), XPathConstants.NODESET);
+            }
+
             for (int j=0; j < servletMappings.getLength(); j++) {
                Node servletMapping = servletMappings.item(j);
                NodeList servletMappingChildNodes = servletMapping.getChildNodes();
