@@ -11,6 +11,10 @@
 		<configuration>
 			<property name="wlpHome">${project.build.directory}/liberty/wlp/</property>
 			<property name="deployType">dropins</property>
+
+			<!-- Adjust timeouts to work on Cloudbees CI server -->
+			<property name="appDeployTimeout">60</property>
+			<property name="appUndeployTimeout">10</property>
 		</configuration>
 	</container>
 	<container qualifier="wlp-xml-deployment">
@@ -19,6 +23,10 @@
 			<property name="httpPort">9080</property>
 			<property name="deployType">xml</property>
 			<property name="javaVmArguments">-Xmx512m</property>
+
+                        <!-- Adjust timeouts to work on Cloudbees CI server -->
+                        <property name="appDeployTimeout">60</property>
+                        <property name="appUndeployTimeout">10</property>
 		</configuration>
 	</container>
 </arquillian>
