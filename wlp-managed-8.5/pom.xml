@@ -31,8 +31,8 @@
 				<executions>
 					<execution>
 						<id>create-server</id>
-						<!-- Using the process-test-classes phase is a workaround as long as 
-							using the test phase here does not execute in the correct order -->
+						<!-- Plugin execution needs to be bound to previous phase.
+						     Because Maven. See MNG-5799 and MNG-5987 -->
 						<phase>process-test-classes</phase>
 						<goals>
 							<goal>create-server</goal>

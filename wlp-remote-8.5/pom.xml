@@ -13,11 +13,10 @@
 	<description>WebSphere Liberty Profile 8.5 Remote Container integration for the Arquillian Project</description>
 
 	<properties>
-		<skipTests>true</skipTests>
+		<skipTests>false</skipTests>
 		<version.jackson>2.4.4</version.jackson>
 		<version.apache.fluent.hc>4.3.6</version.apache.fluent.hc>
 	</properties>
-
 
 	<build>
 		<plugins>
@@ -31,6 +30,10 @@
 							<name>java.util.logging.config.file</name>
 							<value>${basedir}/src/test/resources/logging.properties</value>
 						</property>
+						<property>
+							<name>javax.net.ssl.trustStore</name>
+							<value>${project.build.directory}/liberty/wlp/usr/servers/defaultServer/resources/security/key.jks</value>
+						</property>
 					</systemProperties>
 				</configuration>
 				<executions>
@@ -41,15 +44,44 @@
 						</goals>
 						<configuration>
 							<skip>${skipTests}</skip>
-							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-8554-deployment-test</reportsDirectory>
+							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-deployment-test</reportsDirectory>
 							<systemPropertyVariables>
 								<arquillian.launch>wlp-remote</arquillian.launch>
 							</systemPropertyVariables>
 						</configuration>
 					</execution>
-
 				</executions>
 			</plugin>
+                        <plugin>
+                                <groupId>net.wasdev.wlp.maven.plugins</groupId>
+                                <artifactId>liberty-maven-plugin</artifactId>
+                                <version>1.1</version>
+                                <executions>
+                                        <execution>
+                                                <id>start-server</id>
+                                                <!-- Plugin execution needs to be bound to previous phase.
+                                                     Because Maven. See MNG-5799 and MNG-5987 -->
+                                                <phase>process-test-classes</phase>
+                                                <goals>
+                                                        <goal>start-server</goal>
+                                                </goals>
+                                        </execution>
+                                        <execution>
+                                                <id>stop-server</id>
+                                                <phase>test</phase>
+                                                <goals>
+                                                        <goal>stop-server</goal>
+                                                </goals>
+                                        </execution>
+                                </executions>
+                                <configuration>
+                                        <serverName>defaultServer</serverName>
+                                        <install>
+                                                <licenseCode>L-MCAO-9SYMVC</licenseCode>
+                                                <version>8.5.5_+</version>
+                                        </install>
+                                </configuration>
+                        </plugin>
 		</plugins>
 	</build>
 
