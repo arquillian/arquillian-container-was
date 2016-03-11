@@ -40,6 +40,7 @@
 					</execution>
 				</executions>
 				<configuration>
+					<skip>${skipTests}</skip>
 					<serverName>defaultServer</serverName>
 					<install>
 						<licenseCode>L-MCAO-9SYMVC</licenseCode>
