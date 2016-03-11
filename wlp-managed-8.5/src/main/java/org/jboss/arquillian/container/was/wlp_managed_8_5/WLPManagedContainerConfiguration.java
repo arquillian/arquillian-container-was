@@ -30,7 +30,7 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
 public class WLPManagedContainerConfiguration implements
       ContainerConfiguration {
    
-   private String wlpHome;
+   private String wlpHome = System.getenv("ARQUILLIAN_WLP_HOME");
    private String serverName = "defaultServer";
    private int httpPort = 0;
    private int serverStartTimeout = 30;
@@ -56,7 +56,7 @@ public class WLPManagedContainerConfiguration implements
             throw new ConfigurationException("wlpHome provided is not valid: " + wlpHome);
       } else {
          // If wlpHome is null, throw exception
-         throw new ConfigurationException("wlpHome is required for initialization");
+         throw new ConfigurationException("wlpHome or system env \"ARQUILLIAN_WLP_HOME\" is required for initialization");
       }
       
       // Validate serverName
