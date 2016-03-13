@@ -31,9 +31,10 @@
 				<executions>
 					<execution>
 						<id>create-server</id>
-						<!-- Plugin execution needs to be bound to previous phase.
+						<!-- Plugin execution only succeeds here in the correct order because
+						     execution id of the test is not 'default-test'.
 						     Because Maven. See MNG-5799 and MNG-5987 -->
-						<phase>process-test-classes</phase>
+						<phase>test</phase>
 						<goals>
 							<goal>create-server</goal>
 						</goals>
@@ -63,7 +64,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>default-test</id>
+                        <id>wlp-dropins-deployment-test</id>
                         <phase>test</phase>
                         <goals>  
                             <goal>test</goal>  
