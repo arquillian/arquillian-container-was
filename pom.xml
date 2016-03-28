@@ -85,5 +85,11 @@
                 <module>wlp-remote-8.5</module>
             </modules>
         </profile>
+        <profile>
+            <id>wercker</id>
+            <modules>
+                <module>was-remote-8.5</module>
+            </modules>
+        </profile>
     </profiles>
 </project>

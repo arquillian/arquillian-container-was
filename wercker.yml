@@ -1,0 +1,21 @@
+box: 
+  id: gpoul/websphere-traditional
+  username: $USERNAME
+  password: $PASSWORD
+  tag: arquillian-wasv9-ci
+
+build:
+  steps:
+    # Tests with WebSphere Liberty Profile
+    - xenoterracide/maven:
+        goals: -DskipTests=false -P release test
+    # Tests with WebSphere Application Server
+    - script:
+        code: |
+          . /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/setupCmdLine.sh
+          /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/startServer.sh server1
+    - xenoterracide/maven:
+        goals: -DskipTests=false -P wercker test
+    - script:
+        code: |
+          /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/stopServer.sh server1
