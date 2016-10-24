@@ -39,6 +39,7 @@ public class WLPManagedContainerConfiguration implements
    private String sharedLib = null;
    private String deployType = "dropins";
    private String javaVmArguments = "";
+   private boolean addLocalConnector;
 
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
@@ -180,5 +181,13 @@ public class WLPManagedContainerConfiguration implements
 
    public void setJavaVmArguments(String javaVmArguments) {
       this.javaVmArguments = javaVmArguments;
+   }
+   
+   public boolean isAddLocalConnector() {
+       return addLocalConnector;
+   }
+
+   public void setAddLocalConnector(boolean addLocalConnector) {
+       this.addLocalConnector = addLocalConnector;
    }
 }
