@@ -16,6 +16,8 @@
  */
 package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
+import static java.util.logging.Level.FINER;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -117,6 +119,26 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             if (serviceURL == null)
                throw new LifecycleException("Unable to retrieve connector address for localConnector");
          } else {
+
+            if (containerConfiguration.isAddLocalConnector()) {
+                // Get path to server.xml
+                String serverXML = getServerXML();
+                if ("defaultServer".equals(containerConfiguration.getServerName()) && !new File(serverXML).exists()) {
+                    // If server.xml doesn't exist for the default server, we may be dealing with a new
+                    // installation where the server will be created at first
+                    // startup. Get the default template server.xml instead. The server.xml for "defaultServer"
+                    // will be created from this.
+                    serverXML = getDefaultServerXML();
+                }
+                 
+                // Read server.xml file into Memory
+                Document document = readServerXML(serverXML);
+                 
+                addFeatures(document, "localConnector-1.0");
+                 
+                writeServerXML(document, serverXML);
+            }
+             
             // Start the WebSphere Liberty Profile VM
             List<String> cmd = new ArrayList<String>();
 
@@ -450,6 +472,17 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       return serverXML;
    }
 
+   // templates/servers/defaultServer/server.xml
+   private String getDefaultServerXML() {
+      String serverXML = containerConfiguration.getWlpHome() + 
+                         "/templates/servers/defaultServer/server.xml";
+      if (log.isLoggable(FINER)) {
+         log.finer("default server.xml: " + serverXML);
+      }
+      
+      return serverXML;
+   }
+
    private String createDeploymentName(String archiveName) 
    {
       return archiveName.substring(0, archiveName.lastIndexOf("."));
@@ -459,30 +492,69 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    {
       return archiveName.substring(archiveName.lastIndexOf(".")+1);
    }
+   
+   private Document readServerXML() throws DeploymentException {
+       return readServerXML(getServerXML());
+   }
 
-   private Document readServerXML() throws DeploymentException
-   {
+   private Document readServerXML(String serverXML) throws DeploymentException {
       try {
          DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
          DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-         return documentBuilder.parse(new File(getServerXML()));
+         return documentBuilder.parse(new File(serverXML));
       } catch (Exception e) {
          throw new DeploymentException("Exception while reading server.xml file.", e);
       }
    }
-
-   private void writeServerXML(Document doc) throws DeploymentException
-   {
+   
+   private void writeServerXML(Document doc) throws DeploymentException {
+       writeServerXML(doc, getServerXML());
+   }
+   
+   private void writeServerXML(Document doc, String serverXML) throws DeploymentException {
       try {
          TransformerFactory tf = TransformerFactory.newInstance();
          Transformer tr = tf.newTransformer();
          tr.setOutputProperty(OutputKeys.INDENT, "yes");
          DOMSource source = new DOMSource(doc);
-         StreamResult res = new StreamResult(new File(getServerXML()));
+         StreamResult res = new StreamResult(new File(serverXML));
          tr.transform(source, res);
       } catch (Exception e) {
          throw new DeploymentException("Exception wile writing server.xml file.", e);
       }
+   }
+   
+   private Element createFeature(Document doc, String featureName) {
+       
+       Element feature = doc.createElement("feature");
+       feature.appendChild(doc.createTextNode(featureName));
+       
+       return feature;
+   }
+   
+   private void addFeatures(Document doc, String featureNames) {
+      NodeList rootList = doc.getElementsByTagName("featureManager");
+      Node featureManager = rootList.item(0);
+      
+      for (String featureName : featureNames.split(",")) {
+          if (!checkFeatureAlreadyThere(featureName, featureManager.getChildNodes())) {
+              featureManager.appendChild(createFeature(doc, featureName));
+          }
+      }
+   }
+   
+   private boolean checkFeatureAlreadyThere(String featureName, NodeList featureManagerList) {
+       for (int i=0; i<featureManagerList.getLength(); i++) {
+           Node feature = featureManagerList.item(i);
+           if ("feature".equals(feature.getNodeName())) {
+               Node featureText = feature.getFirstChild();
+               if (featureText != null && featureText.getTextContent().trim().equals(featureName)) {
+                   return true;
+               }
+           }
+       }
+       
+       return false;
    }
 
    private Element createApplication(Document doc, String deploymentName, String archiveName, String type)
