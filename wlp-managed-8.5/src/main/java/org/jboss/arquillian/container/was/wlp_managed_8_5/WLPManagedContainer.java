@@ -23,12 +23,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.ObjectInstance;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -145,6 +147,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             String javaVmArguments = containerConfiguration.getJavaVmArguments();
             
             cmd.add(System.getProperty("java.home") + "/bin/java");
+            cmd.add("-Dcom.ibm.ws.logging.console.log.level=INFO");
             if (!javaVmArguments.equals(""))
                cmd.add(javaVmArguments);
             cmd.add("-javaagent:lib/bootstrap-agent.jar");
@@ -156,7 +159,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(new File(containerConfiguration.getWlpHome()));
-            pb.redirectErrorStream();
+            pb.redirectErrorStream(true);
             wlpProcess = pb.start();
             
             new Thread(new ConsoleConsumer()).start();
@@ -601,8 +604,10 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
 
       ObjectName appMBean = null;
+      ObjectName listAllApps = null;
       try {
          appMBean = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName);
+         listAllApps = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=*");
       } catch (MalformedObjectNameException e) {
          throw new DeploymentException("The generated object name is wrong. The applicationName used was '" + applicationName + "'", e);
       } catch (NullPointerException e) {
@@ -616,8 +621,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          int timeleft = timeout * 1000;
          while(mbsc.isRegistered(appMBean) != targetState) {
             Thread.sleep(100);
-            if (timeleft <= 0)
+            if (timeleft <= 0) {
+               Set<ObjectInstance> allApps = mbsc.queryMBeans(/*listAllApps*/ null, null);
+               log.fine("Size of results: " + allApps.size());
+               for (ObjectInstance app : allApps) {
+                  log.fine(app.getObjectName().toString());
+               }
                throw new DeploymentException("Timeout while waiting for ApplicationMBean to reach targetState");
+            }
             timeleft -= 100;
          }
          
