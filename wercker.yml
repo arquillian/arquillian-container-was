@@ -1,7 +1,5 @@
 box: 
-  id: gpoul/websphere-traditional
-  username: $USERNAME
-  password: $PASSWORD
+  id: gpoul/arquillian-websphere
   tag: arquillian-wasv9-ci
 
 build:
@@ -9,7 +7,10 @@ build:
     # Tests with WebSphere Liberty Profile
     - xenoterracide/maven:
         goals: -DskipTests=false -P release test
-    # Tests with WebSphere Application Server
+
+# Tests with WAS V9
+build-wasv9:
+  steps:
     - script:
         code: |
           . /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/setupCmdLine.sh
