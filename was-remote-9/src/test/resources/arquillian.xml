@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<arquillian xmlns="http://www.jboss.org/arquillian-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.jboss.org/arquillian-1.0 http://jboss.org/schema/arquillian/arquillian-1.0.xsd">
+
+	<engine>
+		<property name="deploymentExportPath">target/</property>
+	</engine>
+
+	<container qualifier="websphere" default="true">
+		<configuration>
+			<property name="remoteServerAddress">localhost</property>
+			<property name="remoteServerSoapPort">8880</property>
+			<property name="securityEnabled">false</property>
+			<property name="username">admin</property>
+			<!-- <property name="password">admin</property>
+ 			<property name="sslTrustStore">C:/IBM/WebSphere/AppServer/profiles/AppSrv01/etc/DummyClientTrustFile.jks</property>
+			<property name="sslTrustStorePassword">WebAS</property> -->
+		</configuration>
+	</container>
+</arquillian>
