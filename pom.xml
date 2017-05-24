@@ -89,7 +89,7 @@
         <profile>
             <id>wercker</id>
             <modules>
-                <module>was-remote-8.5</module>
+                <module>was-remote-9</module>
             </modules>
         </profile>
     </profiles>
