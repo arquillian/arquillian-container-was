@@ -18,9 +18,12 @@ package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import static java.util.logging.Level.FINER;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -29,18 +32,22 @@ import java.util.logging.Logger;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import javax.management.ObjectInstance;
+import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
 
 import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
 import org.jboss.arquillian.container.spi.client.container.DeploymentException;
@@ -49,13 +56,19 @@ import org.jboss.arquillian.container.spi.client.protocol.ProtocolDescription;
 import org.jboss.arquillian.container.spi.client.protocol.metadata.HTTPContext;
 import org.jboss.arquillian.container.spi.client.protocol.metadata.ProtocolMetaData;
 import org.jboss.arquillian.container.spi.client.protocol.metadata.Servlet;
+import org.jboss.arquillian.container.test.api.Testable;
 import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ArchivePath;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
@@ -68,28 +81,32 @@ import com.sun.tools.attach.VirtualMachineDescriptor;
  */
 public class WLPManagedContainer implements DeployableContainer<WLPManagedContainerConfiguration>
 {
+
    private static final String className = WLPManagedContainer.class.getName();
-   
+
    private static Logger log = Logger.getLogger(className);
-   
+
+   private static final String javaVmArgumentsDelimiter = " ";
+   private static final String javaVmArgumentsIndicator = "-";
+
    private WLPManagedContainerConfiguration containerConfiguration;
-   
+
    private JMXConnector jmxConnector;
-   
+
    private MBeanServerConnection mbsc;
-   
+
    private Process wlpProcess;
-   
+
    private Thread shutdownThread;
-   
+
    public void setup(WLPManagedContainerConfiguration configuration)
    {
       if (log.isLoggable(Level.FINER)) {
             log.entering(className, "setup");
       }
-      
+
       this.containerConfiguration = configuration;
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "setup");
       }
@@ -114,9 +131,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          if (vmid != null) {
             if (!containerConfiguration.isAllowConnectingToRunningServer())
                throw new LifecycleException("Connecting to an already running server is not allowed");
-            
+
             wlpvm = VirtualMachine.attach(vmid);
-            
+
             serviceURL = getVMLocalConnectorAddress(wlpvm);
             if (serviceURL == null)
                throw new LifecycleException("Unable to retrieve connector address for localConnector");
@@ -132,38 +149,39 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                     // will be created from this.
                     serverXML = getDefaultServerXML();
                 }
-                 
+
                 // Read server.xml file into Memory
                 Document document = readServerXML(serverXML);
-                 
+
                 addFeatures(document, "localConnector-1.0");
-                 
+
                 writeServerXML(document, serverXML);
             }
-             
+
             // Start the WebSphere Liberty Profile VM
             List<String> cmd = new ArrayList<String>();
 
-            String javaVmArguments = containerConfiguration.getJavaVmArguments();
-            
+			String javaVmArguments = containerConfiguration.getJavaVmArguments();
+
             cmd.add(System.getProperty("java.home") + "/bin/java");
             cmd.add("-Dcom.ibm.ws.logging.console.log.level=INFO");
-            if (!javaVmArguments.equals(""))
-               cmd.add(javaVmArguments);
+            if (!javaVmArguments.equals("")) {
+            	cmd.addAll(parseJvmArgs(javaVmArguments));
+         	}
             cmd.add("-javaagent:lib/bootstrap-agent.jar");
             cmd.add("-jar");
             cmd.add("lib/ws-launch.jar");
             cmd.add(containerConfiguration.getServerName());
-            
+
             log.finer("Starting server with command: " + cmd.toString());
-            
+
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(new File(containerConfiguration.getWlpHome()));
             pb.redirectErrorStream(true);
             wlpProcess = pb.start();
-            
+
             new Thread(new ConsoleConsumer()).start();
-            
+
             final Process proc = wlpProcess;
             shutdownThread = new Thread(new Runnable() {
                 @Override
@@ -179,7 +197,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                 }
             });
             Runtime.getRuntime().addShutdownHook(shutdownThread);
-            
+
             // Wait up to 30s for the server to start
             int startupTimeout = containerConfiguration.getServerStartTimeout() * 1000;
             while (startupTimeout > 0 && serviceURL == null) {
@@ -197,28 +215,28 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
                if (itse == null)
                   throw new LifecycleException("Process terminated prematurely; ev = " + ev);
-               
+
                if (vmid == null)
                   // Find WebSphere Liberty Profile VMs by looking for ws-launch.jar and the name of the server
                   vmid = findVirtualMachineIdByName(containerConfiguration.getServerName());
-               
+
                if (wlpvm == null && vmid != null)
                   wlpvm = VirtualMachine.attach(vmid);
-               
+
                if (serviceURL == null && wlpvm != null)
                   serviceURL = getVMLocalConnectorAddress(wlpvm);
             }
-            
+
             // If serviceURL is still null, we were unable to start the virtual machine
             if (serviceURL == null)
                throw new LifecycleException("Unable to retrieve connector address for localConnector of started VM");
-            
+
             log.finer("vmid: " + vmid);
          }
       } catch (Exception e) {
          throw new LifecycleException("Could not start container", e);
       }
-      
+
       try {
          JMXServiceURL url = new JMXServiceURL(serviceURL);
          jmxConnector = JMXConnectorFactory.connect(url);
@@ -226,28 +244,52 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       } catch (IOException e) {
          throw new LifecycleException("Connecting to the JMX MBean Server failed", e);
       }
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "start");
       }
    }
 
+	private List<String> parseJvmArgs(String javaVmArguments) {
+		List<String> parsedJavaVmArgumetns = new ArrayList<String>();
+		String[] splitJavaVmArguments = javaVmArguments.split(javaVmArgumentsDelimiter);
+		if (splitJavaVmArguments.length > 1) {
+			for (String javaVmArgument : splitJavaVmArguments) {
+				if (javaVmArgument.trim().length() > 0) {
+					// remove precessing spaces
+					if(javaVmArgument.startsWith(javaVmArgumentsIndicator)) {
+						// vm argument without spaces
+						parsedJavaVmArgumetns.add(javaVmArgument);
+					} else {
+						// space handling -> concat with the precessing argument
+						String javaVmArgumentExtension = javaVmArgument;
+						javaVmArgument = parsedJavaVmArgumetns.remove(parsedJavaVmArgumetns.size() - 1) + javaVmArgumentsDelimiter + javaVmArgumentExtension;
+						parsedJavaVmArgumetns.add(javaVmArgument);
+					}
+				}
+			}
+		} else {
+			parsedJavaVmArgumetns.add(javaVmArguments);
+		}
+		return parsedJavaVmArgumetns;
+	}
+
    private String getVMLocalConnectorAddress(VirtualMachine wlpvm)
          throws IOException {
       String serviceURL;
       String PROPERTY_NAME = "com.sun.management.jmxremote.localConnectorAddress";
-      
+
       serviceURL = wlpvm.getAgentProperties().getProperty(PROPERTY_NAME);
-      
+
       // On some environments like the IBM JVM the localConnectorAddress is not
       // in the AgentProperties but in the SystemProperties.
       if (serviceURL == null)
          serviceURL = wlpvm.getSystemProperties().getProperty(PROPERTY_NAME);
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.finer("service url: " + serviceURL);
       }
-      
+
       return serviceURL;
    }
 
@@ -277,7 +319,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "findVirtualMachineIdByName");
       }
-      
+
       return null;
    }
 
@@ -285,10 +327,10 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    {
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "deploy");
-         
+
          log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
-      
+
       String archiveName = archive.getName();
       String archiveType = createDeploymentType(archiveName);
       String deployName = createDeploymentName(archiveName);
@@ -328,7 +370,16 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          // Return metadata on how to contact the deployed application
          ProtocolMetaData metaData = new ProtocolMetaData();
          HTTPContext httpContext = new HTTPContext("localhost", getHttpPort());
-         httpContext.add(new Servlet("ArquillianServletRunner", deployName));
+         List<String> contextRoots = new ArrayList<String>();
+         if (archive instanceof EnterpriseArchive) {
+        	 contextRoots = findArquillianContextRoots((EnterpriseArchive)archive, deployName);
+         } else {
+        	 contextRoots.add(deployName);
+         }
+         // register ArquillianServletRunner
+    	 for(String contextRoot : contextRoots) {
+    		 httpContext.add(new Servlet("ArquillianServletRunner", contextRoot));
+    	 }
          metaData.addContext(httpContext);
 
          if (log.isLoggable(Level.FINER)) {
@@ -340,23 +391,81 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          throw new DeploymentException("Exception while deploying application.", e);
       }
    }
-   
+
+   private List<String> findArquillianContextRoots(final EnterpriseArchive ear, String deployName) throws DeploymentException {
+	   List<String> contextRoots = new ArrayList<String>();
+	   int testableWarCounter = 0;
+	   int totalWarCounter = 0;
+	   WebArchive latestWar = null;
+	   for (ArchivePath path : ear.getContent().keySet()) {
+		   if (path.get().endsWith("war")) {
+			   WebArchive war = ear.getAsType(WebArchive.class, path);
+			   totalWarCounter++;
+			   if (Testable.isArchiveToTest(war)) {
+				   contextRoots.add(getContextRoot(ear, war));
+				   testableWarCounter++;
+			   }
+			   latestWar = war;
+		   }
+	   }
+	   if(testableWarCounter == 0) {
+		   if(totalWarCounter == 1) { // fallback only one war
+			   contextRoots.add(getContextRoot(ear, latestWar));
+		   } else { // default fallback
+			   contextRoots.add(deployName);
+		   }
+	   }
+	   return contextRoots;
+	}
+
+   private String getContextRoot(EnterpriseArchive ear, WebArchive war) throws DeploymentException {
+	   org.jboss.shrinkwrap.api.Node applicationXmlNode = ear.get("META-INF/application.xml");
+	   if(applicationXmlNode != null && applicationXmlNode.getAsset() != null) {
+		   InputStream input = null;
+		   try {
+			   input = ear.get("META-INF/application.xml").getAsset().openStream();
+			   Document applicationXml = readXML(input);
+			   XPath xPath = XPathFactory.newInstance().newXPath();
+			   XPathExpression ctxRootSelector = xPath.compile("//module/web[web-uri/text()='"+ war.getName() +"']/context-root");
+			   String ctxRoot = ctxRootSelector.evaluate(applicationXml);
+			   if(ctxRoot != null && ctxRoot.trim().length() > 0) {
+				   return ctxRoot;
+			   }
+		   } catch (Exception e) {
+			   throw new DeploymentException("Unable to delete archive from dropIn directory");
+		   } finally {
+			   closeQuiently(input);
+		   }
+	   }
+	   return createDeploymentName(war.getName());
+	}
+
+
+	private static void closeQuiently(Closeable closable) {
+		try {
+			if (closable != null)
+				closable.close();
+		} catch (IOException e) {
+			log.log(Level.WARNING, "Exception while closing Closeable", e);
+		}
+	}
+
    private int getHttpPort() throws DeploymentException {
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "getHttpPort");
       }
-      
+
       int httpPort = containerConfiguration.getHttpPort();
-      
+
       if (httpPort == 0)
          httpPort = getHttpPortFromChannelFWMBean("defaultHttpEndpoint");
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "getHttpPort", httpPort);
       }
       return httpPort;
    }
-   
+
    // Returns the HttpPort configured on the Channel Framework MBean with the provided endpoint name
    private int getHttpPortFromChannelFWMBean(String endpointName) throws DeploymentException {
       if (log.isLoggable(Level.FINER)) {
@@ -377,14 +486,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          // ObjectName constructor above can never be null
          throw new DeploymentException("This should never happen", e);
       }
-      
+
       int httpPort;
-      
+
       try {
          if (!mbsc.isRegistered(endpointMBean))
             throw new DeploymentException("The Channel Framework MBean with endpointName '"
                   + endpointName + "' does not exist.");
-         
+
          httpPort = ((Integer)mbsc.getAttribute(endpointMBean, "Port")).intValue();
          log.finer("httpPort: " + httpPort);
       } catch (Exception e) {
@@ -404,7 +513,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "undeploy");
       }
-      
+
       String archiveName = archive.getName();
       String deployName = createDeploymentName(archiveName);
 
@@ -426,8 +535,22 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             // Remove archive from the apps directory
             String appDir = getAppDirectory();
             File exportedArchiveLocation = new File(appDir, archiveName);
-            if (!exportedArchiveLocation.delete())
-               throw new DeploymentException("Unable to delete archive from apps directory");
+            if (!containerConfiguration.isFailSafeUndeployment()) {
+            	try {
+            		if(!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
+            			throw new DeploymentException("Archive already deleted from apps directory");
+            		}
+            	} catch (IOException e) {
+            		throw new DeploymentException("Unable to delete archive from apps directory", e);
+            	}
+            } else {
+            	try {
+            		Files.deleteIfExists(exportedArchiveLocation.toPath());
+            	} catch (IOException e) {
+            		log.log(Level.WARNING, "Unable to delete archive from apps directory -> failsafe -> file marked for delete on exit", e);
+            		exportedArchiveLocation.deleteOnExit();
+            	}
+            }
          }
          else {
             // Remove archive from the dropIn directory, which causes undeploy
@@ -456,7 +579,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          log.finer("dropInDir: " + dropInDir);
       return dropInDir;
    }
-   
+
    private String getAppDirectory()
    {
       String appDir = containerConfiguration.getWlpHome() + "/usr/servers/" +
@@ -477,43 +600,51 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    // templates/servers/defaultServer/server.xml
    private String getDefaultServerXML() {
-      String serverXML = containerConfiguration.getWlpHome() + 
+      String serverXML = containerConfiguration.getWlpHome() +
                          "/templates/servers/defaultServer/server.xml";
       if (log.isLoggable(FINER)) {
          log.finer("default server.xml: " + serverXML);
       }
-      
+
       return serverXML;
    }
 
-   private String createDeploymentName(String archiveName) 
+   private String createDeploymentName(String archiveName)
    {
       return archiveName.substring(0, archiveName.lastIndexOf("."));
    }
-   
+
    private String createDeploymentType(String archiveName)
    {
       return archiveName.substring(archiveName.lastIndexOf(".")+1);
    }
-   
+
    private Document readServerXML() throws DeploymentException {
        return readServerXML(getServerXML());
    }
 
    private Document readServerXML(String serverXML) throws DeploymentException {
-      try {
-         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-         return documentBuilder.parse(new File(serverXML));
-      } catch (Exception e) {
-         throw new DeploymentException("Exception while reading server.xml file.", e);
-      }
+	   InputStream input = null;
+	   try {
+		   input = new FileInputStream(new File(serverXML));
+		   return readXML(input);
+	   } catch (Exception e) {
+		   throw new DeploymentException("Exception while reading server.xml file.", e);
+	   } finally {
+		   closeQuiently(input);
+	   }
+	}
+
+   private Document readXML(InputStream input) throws ParserConfigurationException, SAXException, IOException {
+	   DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+	   DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+	   return documentBuilder.parse(input);
    }
-   
+
    private void writeServerXML(Document doc) throws DeploymentException {
        writeServerXML(doc, getServerXML());
    }
-   
+
    private void writeServerXML(Document doc, String serverXML) throws DeploymentException {
       try {
          TransformerFactory tf = TransformerFactory.newInstance();
@@ -526,26 +657,26 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          throw new DeploymentException("Exception wile writing server.xml file.", e);
       }
    }
-   
+
    private Element createFeature(Document doc, String featureName) {
-       
+
        Element feature = doc.createElement("feature");
        feature.appendChild(doc.createTextNode(featureName));
-       
+
        return feature;
    }
-   
+
    private void addFeatures(Document doc, String featureNames) {
       NodeList rootList = doc.getElementsByTagName("featureManager");
       Node featureManager = rootList.item(0);
-      
+
       for (String featureName : featureNames.split(",")) {
           if (!checkFeatureAlreadyThere(featureName, featureManager.getChildNodes())) {
               featureManager.appendChild(createFeature(doc, featureName));
           }
       }
    }
-   
+
    private boolean checkFeatureAlreadyThere(String featureName, NodeList featureManagerList) {
        for (int i=0; i<featureManagerList.getLength(); i++) {
            Node feature = featureManagerList.item(i);
@@ -556,11 +687,11 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                }
            }
        }
-       
+
        return false;
    }
 
-   private Element createApplication(Document doc, String deploymentName, String archiveName, String type)
+   private Element createApplication(Document doc, String deploymentName, String archiveName, String type) throws DeploymentException
    {
       // create new Application
       Element application = doc.createElement("application");
@@ -576,10 +707,23 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          application.appendChild(sharedLib);
       }
 
+      if(containerConfiguration.getSecurityConfiguration() != null) {
+  		InputStream input = null;
+  		try {
+  			input = new FileInputStream(new File(containerConfiguration.getSecurityConfiguration()));
+  			Document securityConfiguration = readXML(input);
+  			application.appendChild(doc.adoptNode(securityConfiguration.getDocumentElement().cloneNode(true)));
+  		} catch (Exception e) {
+  			throw new DeploymentException("Exception while reading " + containerConfiguration.getSecurityConfiguration() + " file.", e);
+  		} finally {
+  			closeQuiently(input);
+  		}
+      }
+
       return application;
    }
 
-   private void addApplication(Document doc, String deployName, String archiveName, String type)
+   private void addApplication(Document doc, String deployName, String archiveName, String type) throws DOMException, DeploymentException
    {
       NodeList rootList = doc.getElementsByTagName("server");
       Node root = rootList.item(0);
@@ -615,7 +759,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          // ObjectName constructor above can never be null
          throw new DeploymentException("This should never happen", e);
       }
-      
+
       // Loop until the application MBean has reached the target state or until the timeout
       try {
          int timeleft = timeout * 1000;
@@ -631,7 +775,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             }
             timeleft -= 100;
          }
-         
+
          // If the target state is true (true==STARTED)
          // then loop until the deployed application is in started state or until the timeout
          if (targetState == true) {
@@ -647,7 +791,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       } catch (Exception e) {
          throw new DeploymentException("Exception while checking application state.", e);
       }
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "waitForMBeanTargetState");
       }
@@ -664,7 +808,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       } catch (IOException e) {
          throw new LifecycleException("Communication with the MBean Server failed.", e);
       }
-      
+
       if (shutdownThread != null) {
          Runtime.getRuntime().removeShutdownHook(shutdownThread);
          shutdownThread = null;
@@ -678,7 +822,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       } catch (Exception e) {
          throw new LifecycleException("Could not stop container", e);
       }
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "stop");
       }
@@ -688,13 +832,13 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if (log.isLoggable(Level.FINER)) {
          log.entering(className, "getDefaultProtocol");
       }
-      
+
       String defaultProtocol = "Servlet 3.0";
-      
+
       if (log.isLoggable(Level.FINER)) {
          log.exiting(className, "getDefaultProtocol", defaultProtocol);
       }
-      
+
       return new ProtocolDescription(defaultProtocol);
    }
 
@@ -705,14 +849,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    public void deploy(Descriptor descriptor) throws DeploymentException {
       // TODO Auto-generated method stub
-      
+
    }
 
    public void undeploy(Descriptor descriptor) throws DeploymentException {
       // TODO Auto-generated method stub
-      
+
    }
-   
+
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
     * Implementation from wildfly's ManagedDeployableContainer.java

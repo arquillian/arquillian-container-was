@@ -29,7 +29,7 @@ import org.jboss.arquillian.container.spi.client.container.ContainerConfiguratio
  */
 public class WLPManagedContainerConfiguration implements
       ContainerConfiguration {
-   
+
    private String wlpHome;
    private String serverName = "defaultServer";
    private int httpPort = 0;
@@ -40,12 +40,14 @@ public class WLPManagedContainerConfiguration implements
    private String deployType = "dropins";
    private String javaVmArguments = "";
    private boolean addLocalConnector;
+   private String securityConfiguration;
+   private boolean failSafeUndeployment = false;
 
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
-   
+
    private boolean outputToConsole = true;
-   
+
    @Override
    public void validate() throws ConfigurationException {
       // Validate wlpHome
@@ -59,11 +61,17 @@ public class WLPManagedContainerConfiguration implements
          // If wlpHome is null, throw exception
          throw new ConfigurationException("wlpHome is required for initialization");
       }
-      
+
+      if(securityConfiguration != null && securityConfiguration.trim().length() > 0) {
+    	  File securityConfigFile = new File(securityConfiguration);
+    	  if(!securityConfigFile.exists())
+    		  throw new ConfigurationException("securityConfiguration provided is not valid: " + securityConfiguration);
+      }
+
       // Validate serverName
       if (!serverName.matches("^[A-Za-z][A-Za-z0-9]*$"))
          throw new ConfigurationException("serverName provided is not valid: '" + serverName + "'");
-      
+
       // Validate httpPort
       if (httpPort > 65535 || httpPort < 0)
          throw new ConfigurationException("httpPort provided is not valid: " + httpPort);
@@ -136,7 +144,7 @@ public class WLPManagedContainerConfiguration implements
    public void setOutputToConsole(boolean outputToConsole) {
       this.outputToConsole = outputToConsole;
    }
-   
+
    public int getServerStartTimeout() {
       return serverStartTimeout;
    }
@@ -182,7 +190,7 @@ public class WLPManagedContainerConfiguration implements
    public void setJavaVmArguments(String javaVmArguments) {
       this.javaVmArguments = javaVmArguments;
    }
-   
+
    public boolean isAddLocalConnector() {
        return addLocalConnector;
    }
@@ -190,4 +198,21 @@ public class WLPManagedContainerConfiguration implements
    public void setAddLocalConnector(boolean addLocalConnector) {
        this.addLocalConnector = addLocalConnector;
    }
+
+   public String getSecurityConfiguration() {
+	   return securityConfiguration;
+   }
+
+   public void setSecurityConfiguration(String securityConfiguration) {
+	   this.securityConfiguration = securityConfiguration;
+   }
+
+   public boolean isFailSafeUndeployment() {
+	   return failSafeUndeployment;
+   }
+
+   public void setFailSafeUndeployment(boolean failSafeUndeployment) {
+	   this.failSafeUndeployment = failSafeUndeployment;
+   }
+
 }
