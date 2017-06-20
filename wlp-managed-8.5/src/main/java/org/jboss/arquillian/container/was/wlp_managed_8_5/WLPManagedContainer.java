@@ -251,7 +251,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    }
 
 	private List<String> parseJvmArgs(String javaVmArguments) {
-		List<String> parsedJavaVmArgumetns = new ArrayList<String>();
+		List<String> parsedJavaVmArguments = new ArrayList<String>();
 		String[] splitJavaVmArguments = javaVmArguments.split(javaVmArgumentsDelimiter);
 		if (splitJavaVmArguments.length > 1) {
 			for (String javaVmArgument : splitJavaVmArguments) {
@@ -259,19 +259,19 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 					// remove precessing spaces
 					if(javaVmArgument.startsWith(javaVmArgumentsIndicator)) {
 						// vm argument without spaces
-						parsedJavaVmArgumetns.add(javaVmArgument);
+						parsedJavaVmArguments.add(javaVmArgument);
 					} else {
 						// space handling -> concat with the precessing argument
 						String javaVmArgumentExtension = javaVmArgument;
-						javaVmArgument = parsedJavaVmArgumetns.remove(parsedJavaVmArgumetns.size() - 1) + javaVmArgumentsDelimiter + javaVmArgumentExtension;
-						parsedJavaVmArgumetns.add(javaVmArgument);
+						javaVmArgument = parsedJavaVmArguments.remove(parsedJavaVmArguments.size() - 1) + javaVmArgumentsDelimiter + javaVmArgumentExtension;
+						parsedJavaVmArguments.add(javaVmArgument);
 					}
 				}
 			}
 		} else {
-			parsedJavaVmArgumetns.add(javaVmArguments);
+			parsedJavaVmArguments.add(javaVmArguments);
 		}
-		return parsedJavaVmArgumetns;
+		return parsedJavaVmArguments;
 	}
 
    private String getVMLocalConnectorAddress(VirtualMachine wlpvm)
@@ -432,16 +432,15 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 				   return ctxRoot;
 			   }
 		   } catch (Exception e) {
-			   throw new DeploymentException("Unable to delete archive from dropIn directory");
+			   throw new DeploymentException("Unable to retrieve context-root from application.xml");
 		   } finally {
-			   closeQuiently(input);
+			   closeQuietly(input);
 		   }
 	   }
 	   return createDeploymentName(war.getName());
 	}
 
-
-	private static void closeQuiently(Closeable closable) {
+	private static void closeQuietly(Closeable closable) {
 		try {
 			if (closable != null)
 				closable.close();
@@ -631,7 +630,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 	   } catch (Exception e) {
 		   throw new DeploymentException("Exception while reading server.xml file.", e);
 	   } finally {
-		   closeQuiently(input);
+	       closeQuietly(input);
 	   }
 	}
 
@@ -708,16 +707,16 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
 
       if(containerConfiguration.getSecurityConfiguration() != null) {
-  		InputStream input = null;
-  		try {
-  			input = new FileInputStream(new File(containerConfiguration.getSecurityConfiguration()));
-  			Document securityConfiguration = readXML(input);
-  			application.appendChild(doc.adoptNode(securityConfiguration.getDocumentElement().cloneNode(true)));
-  		} catch (Exception e) {
-  			throw new DeploymentException("Exception while reading " + containerConfiguration.getSecurityConfiguration() + " file.", e);
-  		} finally {
-  			closeQuiently(input);
-  		}
+         InputStream input = null;
+         try {
+            input = new FileInputStream(new File(containerConfiguration.getSecurityConfiguration()));
+            Document securityConfiguration = readXML(input);
+            application.appendChild(doc.adoptNode(securityConfiguration.getDocumentElement().cloneNode(true)));
+         } catch (Exception e) {
+            throw new DeploymentException("Exception while reading " + containerConfiguration.getSecurityConfiguration() + " file.", e);
+         } finally {
+            closeQuietly(input);
+         }
       }
 
       return application;
