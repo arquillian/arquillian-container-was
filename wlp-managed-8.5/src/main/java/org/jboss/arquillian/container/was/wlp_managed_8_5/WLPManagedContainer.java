@@ -870,7 +870,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
            final boolean writeOutput = containerConfiguration.isOutputToConsole();
 
            try {
-               byte[] buf = new byte[32];
+               byte[] buf = new byte[32000];
                int num;
                // Do not try reading a line cos it considers '\r' end of line
                while ((num = stream.read(buf)) != -1) {
