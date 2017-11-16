@@ -37,6 +37,7 @@ public class WLPManagedContainerConfiguration implements
    private int appDeployTimeout = 20;
    private int appUndeployTimeout = 2;
    private String sharedLib = null;
+   private String apiTypeVisibility = null;
    private String deployType = "dropins";
    private String javaVmArguments = "";
    private boolean addLocalConnector;
@@ -87,6 +88,14 @@ public class WLPManagedContainerConfiguration implements
                throw new ConfigurationException("deployType must be set to xml when sharedLib is not empty");
          }
       }
+      
+      //Validate apiTypeVisibility
+      if (apiTypeVisibility != null) {
+         if (!apiTypeVisibility.isEmpty()) {
+            if (!deployType.equalsIgnoreCase("xml"))
+               throw new ConfigurationException("deployType must be set to xml when apiTypeVisibility is not empty");
+         }
+      }
    }
 
    public String getWlpHome() {
@@ -121,6 +130,15 @@ public class WLPManagedContainerConfiguration implements
       return sharedLib;
    }
 
+   public void setApiTypeVisibility(String apiTypeVisibility) {
+      this.apiTypeVisibility = apiTypeVisibility;
+   }
+
+   public String getApiTypeVisibility() {
+      return apiTypeVisibility;
+   }
+
+   
    public void setDeployType(String deployType) {
       this.deployType = deployType;
    }

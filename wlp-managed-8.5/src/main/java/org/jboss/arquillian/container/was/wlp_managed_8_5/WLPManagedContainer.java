@@ -700,10 +700,19 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       application.setAttribute("type", type);
 
       // create shared library
-      if (containerConfiguration.getSharedLib() != null) {
-         Element sharedLib = doc.createElement("classloader");
-         sharedLib.setAttribute("commonLibraryRef", containerConfiguration.getSharedLib());
-         application.appendChild(sharedLib);
+      if (containerConfiguration.getSharedLib() != null
+          ||containerConfiguration.getApiTypeVisibility() != null) {
+
+         Element classloader = doc.createElement("classloader");
+
+         if (containerConfiguration.getSharedLib() != null) {
+            classloader.setAttribute("commonLibraryRef", containerConfiguration.getSharedLib());
+         }
+   
+         if (containerConfiguration.getApiTypeVisibility() != null) {
+            classloader.setAttribute("apiTypeVisibility", containerConfiguration.getApiTypeVisibility());
+         }
+         application.appendChild(classloader);
       }
 
       if(containerConfiguration.getSecurityConfiguration() != null) {
