@@ -18,11 +18,13 @@ package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import static java.util.logging.Level.FINER;
 
+import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +65,7 @@ import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
+import org.jboss.weld.exceptions.DefinitionException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -797,6 +800,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             }
          }
       } catch (Exception e) {
+         checkForDefinitionExceptions(applicationName);
          throw new DeploymentException("Exception while checking application state.", e);
       }
 
@@ -865,6 +869,37 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    }
 
+   private void checkForDefinitionExceptions(String applicationName)
+   {
+      String messagesFile = containerConfiguration.getWlpHome() + "/usr/servers/" + containerConfiguration.getServerName() + "/logs/messages.log";
+      BufferedReader br = null;
+
+      try {
+         br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFile)));
+         String line;
+         while ((line = br.readLine()) != null) {
+            if (line.contains("CWWKZ0002E: An exception occurred while starting the application " + applicationName + ".")
+                  && (line.contains("org.jboss.weld.exceptions.DefinitionException") || line.contains("javax.enterprise.inject.spi.DefinitionException"))) {
+               System.out.println("############DEBUG found CWWKZ0002E for application: " + applicationName);
+               System.out.println(line);
+               throw new DefinitionException(line);
+            }
+         }
+      } catch (IOException e) {
+         System.err.println("Exception while reading messages.log" + e.toString());
+         e.printStackTrace();
+      } finally {
+         try {
+            if (br != null)
+               br.close();
+         } catch (Exception e) {
+            System.err.println("Exception while closing bufferedreader " + e.toString());
+            e.printStackTrace();
+         }
+      }
+   }
+   
+   
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
     * Implementation from wildfly's ManagedDeployableContainer.java
