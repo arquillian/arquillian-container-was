@@ -25,7 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -98,7 +101,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    private Process wlpProcess;
 
    private Thread shutdownThread;
-
+   
+   private enum AppStatus {
+	   INITIAL,
+	   MATCHES_TARGET_STATE,
+	   FINISHED
+   }
+   
+   @Override
    public void setup(WLPManagedContainerConfiguration configuration)
    {
       if (log.isLoggable(Level.FINER)) {
@@ -114,6 +124,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    // This method includes parts heavily based on the ManagedDeployableContainer.java in the jboss-as
    // managed container implementation as written by Thomas.Diesler@jboss.com
+   @Override
    public void start() throws LifecycleException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -323,6 +334,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       return null;
    }
 
+   @Override
    public ProtocolMetaData deploy(final Archive<?> archive) throws DeploymentException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -330,7 +342,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
          log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
-
+      
+      waitForVerifyApps();
+      
       String archiveName = archive.getName();
       String archiveType = createDeploymentType(archiveName);
       String deployName = createDeploymentName(archiveName);
@@ -365,7 +379,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          }
 
          // Wait until the application is deployed and available
-         waitForApplicationTargetState(deployName, true, containerConfiguration.getAppDeployTimeout());
+         waitForApplicationTargetState(new String[] {deployName}, true, containerConfiguration.getAppDeployTimeout());
 
          // Return metadata on how to contact the deployed application
          ProtocolMetaData metaData = new ProtocolMetaData();
@@ -391,6 +405,24 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          throw new DeploymentException("Exception while deploying application.", e);
       }
    }
+   
+	private void waitForVerifyApps() throws DeploymentException {
+		String verifyApps = containerConfiguration.getVerifyApps();
+		
+		if(verifyApps.length() > 0) {
+			String[] verifyAppList = verifyApps.split(",");
+			int totalTimeout = containerConfiguration.getVerifyAppDeployTimeout() * verifyAppList.length;
+
+			// Trim the whitespace off each app name
+			for (int i = 0; i < verifyAppList.length; i++) {
+				String appToVerify = verifyAppList[i];
+				appToVerify = appToVerify.trim();
+				verifyAppList[i] = appToVerify;
+			}
+
+			waitForApplicationTargetState(verifyAppList, true, totalTimeout);
+		}
+	}
 
    private List<String> findArquillianContextRoots(final EnterpriseArchive ear, String deployName) throws DeploymentException {
 	   List<String> contextRoots = new ArrayList<String>();
@@ -507,6 +539,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       return httpPort;
    }
 
+   @Override
    public void undeploy(final Archive<?> archive) throws DeploymentException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -529,7 +562,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             writeServerXML(document);
 
             // Wait until the application is undeployed
-            waitForApplicationTargetState(deployName, false, containerConfiguration.getAppUndeployTimeout());
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
 
             // Remove archive from the apps directory
             String appDir = getAppDirectory();
@@ -559,7 +592,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                throw new DeploymentException("Unable to delete archive from dropIn directory");
 
             // Wait until the application is undeployed
-            waitForApplicationTargetState(deployName, false, containerConfiguration.getAppUndeployTimeout());
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
          }
 
       } catch (Exception e) {
@@ -740,60 +773,115 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          }
       }
    }
+   
+   private void logAllApps() {
+	   try {
+		   log.info("Listing all apps...");
+		   Set<ObjectInstance> allApps = mbsc.queryMBeans(null, null);
+		   log.info("Size of results: " + allApps.size());
+		   for (ObjectInstance app : allApps) {
+			   log.info(app.getObjectName().toString());
+		   }
+	   } catch(Exception e) {
+		   log.warning("Could not print list of all apps.");
+		   e.printStackTrace();
+	   }
+   }
 
-   private void waitForApplicationTargetState(String applicationName, boolean targetState, int timeout) throws DeploymentException {
+   private void waitForApplicationTargetState(String[] applicationNames, boolean targetState, int timeout) throws DeploymentException {
       if (log.isLoggable(Level.FINER)) {
-         log.entering(className, "waitForMBeanTargetState");
+         log.entering(className, "waitForApplicationTargetState");
       }
-
-      ObjectName appMBean = null;
-      ObjectName listAllApps = null;
-      try {
-         appMBean = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName);
-         listAllApps = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=*");
-      } catch (MalformedObjectNameException e) {
-         throw new DeploymentException("The generated object name is wrong. The applicationName used was '" + applicationName + "'", e);
-      } catch (NullPointerException e) {
-         // This should never happen given that the name parameter to the
-         // ObjectName constructor above can never be null
-         throw new DeploymentException("This should never happen", e);
+      
+      Map<ObjectName, AppStatus> appMBeans = new HashMap<ObjectName, AppStatus>();
+      
+      for(String applicationName : applicationNames) {
+    	  ObjectName appMBean = null;
+          try {
+             appMBean = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName);
+          } catch (MalformedObjectNameException e) {
+             throw new DeploymentException("The generated object name is wrong. The applicationName used was '" + applicationName + "'", e);
+          } catch (NullPointerException e) {
+             // This should never happen given that the name parameter to the
+             // ObjectName constructor above can never be null
+             throw new DeploymentException("This should never happen", e);
+          }
+          appMBeans.put(appMBean, AppStatus.INITIAL);
       }
 
       // Loop until the application MBean has reached the target state or until the timeout
       try {
-         int timeleft = timeout * 1000;
-         while(mbsc.isRegistered(appMBean) != targetState) {
-            Thread.sleep(100);
-            if (timeleft <= 0) {
-               Set<ObjectInstance> allApps = mbsc.queryMBeans(/*listAllApps*/ null, null);
-               log.fine("Size of results: " + allApps.size());
-               for (ObjectInstance app : allApps) {
-                  log.fine(app.getObjectName().toString());
-               }
-               throw new DeploymentException("Timeout while waiting for ApplicationMBean to reach targetState");
-            }
-            timeleft -= 100;
-         }
-
-         // If the target state is true (true==STARTED)
-         // then loop until the deployed application is in started state or until the timeout
-         if (targetState == true) {
-            String applicationState = null;
-            while(applicationState == null || !applicationState.contentEquals("STARTED")) {
-               Thread.sleep(100);
-               applicationState = (String)mbsc.getAttribute(appMBean, "State");
-               if (timeleft <= 0)
-                  throw new DeploymentException("Timeout while waiting for ApplicationState to reach STARTED");
-               timeleft -= 100;
-            }
-         }
+         checkApplicationStatus(appMBeans, targetState, timeout);
       } catch (Exception e) {
          throw new DeploymentException("Exception while checking application state.", e);
       }
 
       if (log.isLoggable(Level.FINER)) {
-         log.exiting(className, "waitForMBeanTargetState");
+         log.exiting(className, "waitForApplicationTargetState");
       }
+   }
+   
+	private void checkApplicationStatus(Map<ObjectName, AppStatus> appMBeans, boolean targetState, int timeout) throws Exception {
+		int timeleft = timeout * 1000;
+
+		// Loop until all apps are ready. If timeleft is 0, fail the deployment
+		while (!allAppsReady(appMBeans)) {
+			for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
+				ObjectName appMBean = entry.getKey();
+				AppStatus status = entry.getValue();
+				
+				// First check if apps in the INITIAL state have reached the targetState. If so, update their AppStatus.
+				if(status == AppStatus.INITIAL) {
+					if(mbsc.isRegistered(appMBean) == targetState) {
+						status = AppStatus.MATCHES_TARGET_STATE;
+					}
+				}
+				
+				// Then check if apps in the targetState have reached the STARTED state, if the targetState == true. 
+				if(status == AppStatus.MATCHES_TARGET_STATE) {
+					if(targetState == true) {
+						String applicationState = (String)mbsc.getAttribute(appMBean, "State");
+						if(applicationState.contentEquals("STARTED")) {
+							status = AppStatus.FINISHED;
+						}
+					}
+					else {
+						status = AppStatus.FINISHED;
+					}
+				}
+				
+				// Update the appMBeans dictionary
+				appMBeans.put(appMBean, status);
+			}
+			
+			Thread.sleep(100);
+			if (timeleft <= 0) {
+				logAllApps();
+				String appMessageStatus = "";
+				for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
+					// Timeout while waiting for ApplicationMBean to reach targetState
+					String appName = entry.getKey().getCanonicalName();
+					AppStatus status = entry.getValue();
+					if(status == AppStatus.INITIAL) {
+						appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationMBean to reach targetState.\n";
+					}
+					else if(status == AppStatus.MATCHES_TARGET_STATE) {
+						appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationState to reach STARTED.\n";
+					}
+				}
+				throw new DeploymentException(appMessageStatus);
+			}
+			timeleft -= 100;
+		}
+   }
+   
+   private boolean allAppsReady(Map<ObjectName, AppStatus> appMBeans) {
+	   for(AppStatus status : appMBeans.values()) {
+		   if(status != AppStatus.FINISHED) {
+			   return false;
+		   }
+	   }
+	   return true;
    }
 
    public void stop() throws LifecycleException

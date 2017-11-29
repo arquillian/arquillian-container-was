@@ -33,6 +33,7 @@ public class WLPManagedContainerConfiguration implements
    private String wlpHome;
    private String serverName = "defaultServer";
    private int httpPort = 0;
+   
    private int serverStartTimeout = 30;
    private int appDeployTimeout = 20;
    private int appUndeployTimeout = 2;
@@ -42,11 +43,11 @@ public class WLPManagedContainerConfiguration implements
    private boolean addLocalConnector;
    private String securityConfiguration;
    private boolean failSafeUndeployment = false;
-
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
-
    private boolean outputToConsole = true;
+   private String verifyApps = "";
+   private int verifyAppDeployTimeout = appDeployTimeout;
 
    @Override
    public void validate() throws ConfigurationException {
@@ -80,7 +81,7 @@ public class WLPManagedContainerConfiguration implements
       if (!deployType.equalsIgnoreCase("xml") && !deployType.equalsIgnoreCase("dropins"))
          throw new ConfigurationException("deployType provided is not valid: " + deployType + ".  deployType should be xml or dropins.");
 
-      //Validate sharedLib
+      // Validate sharedLib
       if (sharedLib != null) {
          if (!sharedLib.isEmpty()) {
             if (!deployType.equalsIgnoreCase("xml"))
@@ -213,6 +214,22 @@ public class WLPManagedContainerConfiguration implements
 
    public void setFailSafeUndeployment(boolean failSafeUndeployment) {
 	   this.failSafeUndeployment = failSafeUndeployment;
+   }
+   
+   public String getVerifyApps() {
+	   return verifyApps;
+   }
+   
+   public void setVerifyApps(String verifyApps) {
+	   this.verifyApps = verifyApps;
+   }
+   
+   public int getVerifyAppDeployTimeout() {
+	   return verifyAppDeployTimeout;
+   }
+   
+   public void setVerifyAppDeployTimeout(int verifyAppDeployTimeout) {
+	   this.verifyAppDeployTimeout = verifyAppDeployTimeout;
    }
 
 }
