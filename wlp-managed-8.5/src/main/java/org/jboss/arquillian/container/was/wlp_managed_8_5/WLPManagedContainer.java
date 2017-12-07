@@ -417,7 +417,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 			for (int i = 0; i < verifyAppList.length; i++) {
 				String appToVerify = verifyAppList[i];
 				appToVerify = appToVerify.trim();
-				verifyAppList[i] = appToVerify;
+				if(appToVerify.length() > 0) {
+					verifyAppList[i] = appToVerify;
+				}
 			}
 
 			waitForApplicationTargetState(verifyAppList, true, totalTimeout);
