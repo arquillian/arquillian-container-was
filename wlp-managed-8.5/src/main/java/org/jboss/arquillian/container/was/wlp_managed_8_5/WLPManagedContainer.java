@@ -409,7 +409,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 	private void waitForVerifyApps() throws DeploymentException {
 		String verifyApps = containerConfiguration.getVerifyApps();
 		
-		if(verifyApps.length() > 0) {
+		if(verifyApps != null && verifyApps.length() > 0) {
 			String[] verifyAppList = verifyApps.split(",");
 			int totalTimeout = containerConfiguration.getVerifyAppDeployTimeout() * verifyAppList.length;
 
