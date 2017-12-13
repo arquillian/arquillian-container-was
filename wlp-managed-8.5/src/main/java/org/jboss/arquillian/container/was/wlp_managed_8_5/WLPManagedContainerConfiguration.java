@@ -47,7 +47,7 @@ public class WLPManagedContainerConfiguration implements
    private boolean allowConnectingToRunningServer = Boolean.parseBoolean(
          System.getProperty("org.jboss.arquillian.container.was.wlp_managed_8_5.allowConnectingToRunningServer",  "false"));
    private boolean outputToConsole = true;
-   private String verifyApps = "";
+   private String verifyApps = null;
    private int verifyAppDeployTimeout = appDeployTimeout;
 
    @Override

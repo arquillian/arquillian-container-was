@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -102,6 +103,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    private Thread shutdownThread;
    
+   // Used in waitForApplicationTargetState
+   // When targetState = true (registered), MATCHES_TARGET_STATE means the app is registered and FINISHED means the app is started.
+   // When targetState = false (unregistered), MATCHES_TARGET_STATE and FINISHED both mean the application is unregistered.
    private enum AppStatus {
 	   INITIAL,
 	   MATCHES_TARGET_STATE,
@@ -410,19 +414,21 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 		String verifyApps = containerConfiguration.getVerifyApps();
 		
 		if(verifyApps != null && verifyApps.length() > 0) {
-			String[] verifyAppList = verifyApps.split(",");
-			int totalTimeout = containerConfiguration.getVerifyAppDeployTimeout() * verifyAppList.length;
+			String[] verifyAppArray = verifyApps.split(",");
+			Set<String> verifyAppSet = new HashSet<String>();
 
 			// Trim the whitespace off each app name
-			for (int i = 0; i < verifyAppList.length; i++) {
-				String appToVerify = verifyAppList[i];
+			for (int i = 0; i < verifyAppArray.length; i++) {
+				String appToVerify = verifyAppArray[i];
 				appToVerify = appToVerify.trim();
 				if(appToVerify.length() > 0) {
-					verifyAppList[i] = appToVerify;
+					verifyAppSet.add(appToVerify);
 				}
 			}
+			
+			int totalTimeout = containerConfiguration.getVerifyAppDeployTimeout() * verifyAppSet.size();
 
-			waitForApplicationTargetState(verifyAppList, true, totalTimeout);
+			waitForApplicationTargetState(verifyAppSet.toArray(new String[verifyAppSet.size()]), true, totalTimeout);
 		}
 	}
 
@@ -793,9 +799,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 		   for (ObjectInstance app : allApps) {
 			   log.info(app.getObjectName().toString());
 		   }
-	   } catch(Exception e) {
-		   log.warning("Could not print list of all apps.");
-		   e.printStackTrace();
+	   } catch(IOException e) {
+		   log.warning("Could not print list of all apps. Exception thrown is: " + e.getMessage());
 	   }
    }
 
@@ -836,7 +841,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 		int timeleft = timeout * 1000;
 
 		// Loop until all apps are ready. If timeleft is 0, fail the deployment
-		while (!allAppsReady(appMBeans)) {
+		do {
 			for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
 				ObjectName appMBean = entry.getKey();
 				AppStatus status = entry.getValue();
@@ -865,25 +870,30 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 				appMBeans.put(appMBean, status);
 			}
 			
-			Thread.sleep(100);
-			if (timeleft <= 0) {
-				logAllApps();
-				String appMessageStatus = "";
-				for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
-					// Timeout while waiting for ApplicationMBean to reach targetState
-					String appName = entry.getKey().getCanonicalName();
-					AppStatus status = entry.getValue();
-					if(status == AppStatus.INITIAL) {
-						appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationMBean to reach targetState.\n";
-					}
-					else if(status == AppStatus.MATCHES_TARGET_STATE) {
-						appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationState to reach STARTED.\n";
-					}
-				}
-				throw new DeploymentException(appMessageStatus);
+			if(allAppsReady(appMBeans)) {
+				return;
 			}
+			
+			Thread.sleep(100);
+
 			timeleft -= 100;
+		} while (timeleft > 0);
+		
+		// If we haven't returned in the while loop, not all apps were ready in the given timeout period.
+		logAllApps();
+		String appMessageStatus = "";
+		for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
+			// Timeout while waiting for ApplicationMBean to reach targetState
+			String appName = entry.getKey().getCanonicalName();
+			AppStatus status = entry.getValue();
+			if(status == AppStatus.INITIAL) {
+				appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationMBean to reach targetState.\n";
+			}
+			else if(status == AppStatus.MATCHES_TARGET_STATE) {
+				appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationState to reach STARTED.\n";
+			}
 		}
+		throw new DeploymentException(appMessageStatus);
    }
    
    private boolean allAppsReady(Map<ObjectName, AppStatus> appMBeans) {
