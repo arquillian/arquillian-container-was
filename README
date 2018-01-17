@@ -3,5 +3,5 @@ WebSphere Application Server Containers
 
 Issue Tracker: https://jira.jboss.org/jira/browse/ARQ
 
-For using the wlp-managed-8.5 container with IBM's Liberty Maven Plugin,
-please refer to wlp-managed-8.5/pom.xml for inspiration.
+For using the liberty-managed container with IBM's Liberty Maven Plugin,
+please refer to liberty-managed/pom.xml for inspiration.
