@@ -13,7 +13,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- Artifact Configuration -->
-    <artifactId>arquillian-wlp-managed-8.5</artifactId>
+    <artifactId>arquillian-liberty-managed</artifactId>
     <name>Arquillian Container WebSphere Liberty Profile Managed 8.5</name>
     <description>WebSphere Liberty Profile 8.5 Managed Container integration for the Arquillian Project</description>
 
