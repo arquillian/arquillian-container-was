@@ -1,178 +1,180 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.jboss.arquillian.container</groupId>
-		<artifactId>arquillian-parent-was</artifactId>
-		<version>1.0.0.Final-SNAPSHOT</version>
-		<relativePath>../pom.xml</relativePath>
-	</parent>
-	<artifactId>arquillian-liberty-remote</artifactId>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jboss.arquillian.container</groupId>
+    <artifactId>arquillian-parent-was</artifactId>
+    <version>1.0.0.Final-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <artifactId>arquillian-liberty-remote</artifactId>
 
-	<!-- Artifact Configuration -->
-	<name>Arquillian Container Liberty Remote</name>
-	<description>Liberty Remote Container integration for the Arquillian Project</description>
+  <!-- Artifact Configuration -->
+  <name>Arquillian Container Liberty Remote</name>
+  <description>Liberty Remote Container integration for the Arquillian Project</description>
 
-	<properties>
-		<skipTests>false</skipTests>
-		<version.jackson>2.4.4</version.jackson>
-		<version.apache.fluent.hc>4.3.6</version.apache.fluent.hc>
-	</properties>
+  <properties>
+    <skipTests>false</skipTests>
+    <version.jackson>2.4.4</version.jackson>
+    <version.apache.fluent.hc>4.3.6</version.apache.fluent.hc>
+  </properties>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<skip>true</skip>
-					<systemProperties>
-						<property>
-							<name>java.util.logging.config.file</name>
-							<value>${basedir}/src/test/resources/logging.properties</value>
-						</property>
-						<property>
-							<name>javax.net.ssl.trustStore</name>
-							<value>${project.build.directory}/liberty/wlp/usr/servers/defaultServer/resources/security/key.jks</value>
-						</property>
-					</systemProperties>
-				</configuration>
-				<executions>
-					<execution>
-						<id>wlp-8554-test</id>
-						<goals>
-							<goal>test</goal>
-						</goals>
-						<configuration>
-							<skip>${skipTests}</skip>
-							<reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-deployment-test</reportsDirectory>
-							<systemPropertyVariables>
-								<arquillian.launch>wlp-remote</arquillian.launch>
-							</systemPropertyVariables>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-                        <plugin>
-                                <groupId>net.wasdev.wlp.maven.plugins</groupId>
-                                <artifactId>liberty-maven-plugin</artifactId>
-                                <version>1.2</version>
-                                <executions>
-                                        <execution>
-                                                <id>start-server</id>
-                                                <!-- Plugin execution needs to be bound to previous phase.
-                                                     Because Maven. See MNG-5799 and MNG-5987 -->
-                                                <phase>process-test-classes</phase>
-                                                <goals>
-                                                        <goal>start-server</goal>
-                                                </goals>
-                                        </execution>
-                                        <execution>
-                                                <id>stop-server</id>
-                                                <phase>test</phase>
-                                                <goals>
-                                                        <goal>stop-server</goal>
-                                                </goals>
-                                        </execution>
-                                </executions>
-                                <configuration>
-                                        <skip>${skipTests}</skip>
-                                        <serverName>defaultServer</serverName>
-                                        <assemblyArtifact>
-                                                <groupId>com.ibm.websphere.appserver.runtime</groupId>
-                                                <artifactId>wlp-webProfile7</artifactId>
-                                                <version>16.0.0.3</version>
-                                                <type>zip</type>
-                                        </assemblyArtifact>
-                                </configuration>
-                        </plugin>
-		</plugins>
-	</build>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+          <systemProperties>
+            <property>
+              <name>java.util.logging.config.file</name>
+              <value>${basedir}/src/test/resources/logging.properties</value>
+            </property>
+            <property>
+              <name>javax.net.ssl.trustStore</name>
+              <value>${project.build.directory}/liberty/wlp/usr/servers/defaultServer/resources/security/key.jks</value>
+            </property>
+          </systemProperties>
+        </configuration>
+        <executions>
+          <execution>
+            <id>wlp-8554-test</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <skip>${skipTests}</skip>
+              <reportsDirectory>${project.build.directory}/surefire-reports/wlp-remote-deployment-test
+              </reportsDirectory>
+              <systemPropertyVariables>
+                <arquillian.launch>wlp-remote</arquillian.launch>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>net.wasdev.wlp.maven.plugins</groupId>
+        <artifactId>liberty-maven-plugin</artifactId>
+        <version>1.2</version>
+        <executions>
+          <execution>
+            <id>start-server</id>
+            <!-- Plugin execution needs to be bound to previous phase.
+                 Because Maven. See MNG-5799 and MNG-5987 -->
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>start-server</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>stop-server</id>
+            <phase>test</phase>
+            <goals>
+              <goal>stop-server</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <skip>${skipTests}</skip>
+          <serverName>defaultServer</serverName>
+          <assemblyArtifact>
+            <groupId>com.ibm.websphere.appserver.runtime</groupId>
+            <artifactId>wlp-webProfile7</artifactId>
+            <version>16.0.0.3</version>
+            <type>zip</type>
+          </assemblyArtifact>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
-	<!-- Dependencies -->
-	<dependencies>
+  <!-- Dependencies -->
+  <dependencies>
 
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>fluent-hc</artifactId>
-			<version>${version.apache.fluent.hc}</version>
-		</dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>fluent-hc</artifactId>
+      <version>${version.apache.fluent.hc}</version>
+    </dependency>
 
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>${version.jackson}</version>
-		</dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${version.jackson}</version>
+    </dependency>
 
 
-		<!-- org.jboss.arquillian -->
-		<dependency>
-			<groupId>org.jboss.arquillian.container</groupId>
-			<artifactId>arquillian-container-spi</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.container</groupId>
-			<artifactId>arquillian-container-test-spi</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.protocol</groupId>
-			<artifactId>arquillian-protocol-servlet</artifactId>
-		</dependency>
+    <!-- org.jboss.arquillian -->
+    <dependency>
+      <groupId>org.jboss.arquillian.container</groupId>
+      <artifactId>arquillian-container-spi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.container</groupId>
+      <artifactId>arquillian-container-test-spi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.protocol</groupId>
+      <artifactId>arquillian-protocol-servlet</artifactId>
+    </dependency>
 
-		<dependency>
-			<groupId>org.jboss.arquillian.testenricher</groupId>
-			<artifactId>arquillian-testenricher-cdi</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.testenricher</groupId>
-			<artifactId>arquillian-testenricher-ejb</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.testenricher</groupId>
-			<artifactId>arquillian-testenricher-resource</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.testenricher</groupId>
-			<artifactId>arquillian-testenricher-initialcontext</artifactId>
-		</dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.testenricher</groupId>
+      <artifactId>arquillian-testenricher-cdi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.testenricher</groupId>
+      <artifactId>arquillian-testenricher-ejb</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.testenricher</groupId>
+      <artifactId>arquillian-testenricher-resource</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.testenricher</groupId>
+      <artifactId>arquillian-testenricher-initialcontext</artifactId>
+    </dependency>
 
-		<!-- Java EE Spec APIs -->
+    <!-- Java EE Spec APIs -->
 
-		<dependency>
-			<groupId>org.jboss.spec.javax.servlet</groupId>
-			<artifactId>jboss-servlet-api_3.0_spec</artifactId>
-			<version>[1.0,)</version>
-		</dependency>
+    <dependency>
+      <groupId>org.jboss.spec.javax.servlet</groupId>
+      <artifactId>jboss-servlet-api_3.0_spec</artifactId>
+      <version>[1.0,)</version>
+    </dependency>
 
-		<dependency>
-			<groupId>javax.inject</groupId>
-			<artifactId>javax.inject</artifactId>
-			<version>1</version>
-		</dependency>
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+      <version>1</version>
+    </dependency>
 
-		<!-- Sun Tools -->
+    <!-- Sun Tools -->
 
-		<dependency>
-			<groupId>com.sun</groupId>
-			<artifactId>tools</artifactId>
-			<version>1.6.0</version>
-			<scope>system</scope>
-			<systemPath>${java.home}/../lib/tools.jar</systemPath>
-		</dependency>
+    <dependency>
+      <groupId>com.sun</groupId>
+      <artifactId>tools</artifactId>
+      <version>1.6.0</version>
+      <scope>system</scope>
+      <systemPath>${java.home}/../lib/tools.jar</systemPath>
+    </dependency>
 
-		<!-- Testing -->
+    <!-- Testing -->
 
-		<dependency>
-			<groupId>org.jboss.arquillian.junit</groupId>
-			<artifactId>arquillian-junit-container</artifactId>
-			<scope>test</scope>
-		</dependency>
+    <dependency>
+      <groupId>org.jboss.arquillian.junit</groupId>
+      <artifactId>arquillian-junit-container</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-	</dependencies>
+  </dependencies>
 
 </project>
