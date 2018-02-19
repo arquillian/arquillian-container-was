@@ -15,3 +15,8 @@ target/
 # TestNG
 test-output/
 
+# Logs
+*.log
+
+# Wercker
+.wercker/
