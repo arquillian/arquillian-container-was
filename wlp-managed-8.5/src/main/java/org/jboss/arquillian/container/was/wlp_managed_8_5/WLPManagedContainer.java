@@ -18,16 +18,18 @@ package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import static java.util.logging.Level.FINER;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,7 +67,6 @@ import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
-import org.jboss.weld.exceptions.DefinitionException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -76,6 +77,14 @@ import org.xml.sax.SAXException;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Properties;
+import javax.enterprise.inject.spi.DefinitionException;
+
 /**
  * WLPManagedContainer
  *
@@ -84,6 +93,10 @@ import com.sun.tools.attach.VirtualMachineDescriptor;
  */
 public class WLPManagedContainer implements DeployableContainer<WLPManagedContainerConfiguration>
 {
+
+   // Environment variables that Liberty takes account of for messages.log location 
+   private static final String WLP_OUTPUT_DIR = "WLP_OUTPUT_DIR";
+   private static final String WLP_USER_DIR = "WLP_USER_DIR";
 
    private static final String className = WLPManagedContainer.class.getName();
 
@@ -101,7 +114,17 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    private Process wlpProcess;
 
    private Thread shutdownThread;
-
+   
+   // Used in waitForApplicationTargetState
+   // When targetState = true (registered), MATCHES_TARGET_STATE means the app is registered and FINISHED means the app is started.
+   // When targetState = false (unregistered), MATCHES_TARGET_STATE and FINISHED both mean the application is unregistered.
+   private enum AppStatus {
+      INITIAL,
+      MATCHES_TARGET_STATE,
+      FINISHED
+   }
+   
+   @Override
    public void setup(WLPManagedContainerConfiguration configuration)
    {
       if (log.isLoggable(Level.FINER)) {
@@ -117,6 +140,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    // This method includes parts heavily based on the ManagedDeployableContainer.java in the jboss-as
    // managed container implementation as written by Thomas.Diesler@jboss.com
+   @Override
    public void start() throws LifecycleException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -326,6 +350,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       return null;
    }
 
+   @Override
    public ProtocolMetaData deploy(final Archive<?> archive) throws DeploymentException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -333,7 +358,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
          log.finer("Archive provided to deploy method: " + archive.toString(true));
       }
-
+      
+      waitForVerifyApps();
+      
       String archiveName = archive.getName();
       String archiveType = createDeploymentType(archiveName);
       String deployName = createDeploymentName(archiveName);
@@ -367,9 +394,21 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             archive.as(ZipExporter.class).exportTo(exportedArchiveLocation, true);
          }
 
-         // Wait until the application is deployed and available
-         waitForApplicationTargetState(deployName, true, containerConfiguration.getAppDeployTimeout());
+         // On deployment failure throw an Arquillian DeploymentException with a nested
+         // 'cause' that can also be used in tests' ShouldThrowException(MyFrameworkException.class)
+         try{
+             // Wait until the application is deployed and available
+             waitForApplicationTargetState(new String[] {deployName}, true, containerConfiguration.getAppDeployTimeout());
 
+         }catch( DeploymentException dex) {
+            try {
+               throwWrappedExceptionIfFoundInLog(deployName);
+            } catch (IOException ioe) { // Don't catch DeploymentExceptions
+              log.warning( ioe.getMessage() );
+              ioe.printStackTrace(); //Throw the outer deployment exception caught above
+            }
+            throw dex;
+         }
          // Return metadata on how to contact the deployed application
          ProtocolMetaData metaData = new ProtocolMetaData();
          HTTPContext httpContext = new HTTPContext("localhost", getHttpPort());
@@ -392,6 +431,28 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          return metaData;
       } catch (Exception e) {
          throw new DeploymentException("Exception while deploying application.", e);
+      }
+   }
+   
+   private void waitForVerifyApps() throws DeploymentException {
+      String verifyApps = containerConfiguration.getVerifyApps();
+      
+      if(verifyApps != null && verifyApps.length() > 0) {
+         String[] verifyAppArray = verifyApps.split(",");
+         Set<String> verifyAppSet = new HashSet<String>();
+
+         // Trim the whitespace off each app name
+         for (int i = 0; i < verifyAppArray.length; i++) {
+            String appToVerify = verifyAppArray[i];
+            appToVerify = appToVerify.trim();
+            if(appToVerify.length() > 0) {
+               verifyAppSet.add(appToVerify);
+            }
+         }
+         
+         int totalTimeout = containerConfiguration.getVerifyAppDeployTimeout() * verifyAppSet.size();
+
+         waitForApplicationTargetState(verifyAppSet.toArray(new String[verifyAppSet.size()]), true, totalTimeout);
       }
    }
 
@@ -510,6 +571,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       return httpPort;
    }
 
+   @Override
    public void undeploy(final Archive<?> archive) throws DeploymentException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -532,7 +594,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             writeServerXML(document);
 
             // Wait until the application is undeployed
-            waitForApplicationTargetState(deployName, false, containerConfiguration.getAppUndeployTimeout());
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
 
             // Remove archive from the apps directory
             String appDir = getAppDirectory();
@@ -562,7 +624,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                throw new DeploymentException("Unable to delete archive from dropIn directory");
 
             // Wait until the application is undeployed
-            waitForApplicationTargetState(deployName, false, containerConfiguration.getAppUndeployTimeout());
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
          }
 
       } catch (Exception e) {
@@ -574,27 +636,25 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
    }
 
-   private String getDropInDirectory() {
-      String dropInDir = containerConfiguration.getWlpHome() + "/usr/servers/" +
-            containerConfiguration.getServerName() + "/dropins";
+   private String getDropInDirectory() throws IOException {
+      String dropInDir = getServerConfigDir() +
+            "/dropins";
       if (log.isLoggable(Level.FINER))
          log.finer("dropInDir: " + dropInDir);
       return dropInDir;
    }
 
-   private String getAppDirectory()
+   private String getAppDirectory() throws IOException
    {
-      String appDir = containerConfiguration.getWlpHome() + "/usr/servers/" +
-         containerConfiguration.getServerName() + "/apps";
+      String appDir = getServerConfigDir() + "/apps";
       if (log.isLoggable(Level.FINER))
          log.finer("appDir: " + appDir);
       return appDir;
    }
 
-   private String getServerXML()
+   private String getServerXML() throws IOException
    {
-      String serverXML = containerConfiguration.getWlpHome() + "/usr/servers/" +
-         containerConfiguration.getServerName() + "/server.xml";
+      String serverXML = getServerConfigDir() + "/server.xml";
       if (log.isLoggable(Level.FINER))
          log.finer("server.xml: " + serverXML);
       return serverXML;
@@ -622,7 +682,11 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    }
 
    private Document readServerXML() throws DeploymentException {
-       return readServerXML(getServerXML());
+      try {
+    	      return readServerXML(getServerXML());
+      } catch (IOException e) {
+          throw new DeploymentException( "Can't read server.xml", e);
+      }
    }
 
    private Document readServerXML(String serverXML) throws DeploymentException {
@@ -643,7 +707,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 	   return documentBuilder.parse(input);
    }
 
-   private void writeServerXML(Document doc) throws DeploymentException {
+   private void writeServerXML(Document doc) throws DeploymentException, IOException {
        writeServerXML(doc, getServerXML());
    }
 
@@ -752,61 +816,121 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          }
       }
    }
-
-   private void waitForApplicationTargetState(String applicationName, boolean targetState, int timeout) throws DeploymentException {
-      if (log.isLoggable(Level.FINER)) {
-         log.entering(className, "waitForMBeanTargetState");
-      }
-
-      ObjectName appMBean = null;
-      ObjectName listAllApps = null;
+   
+   private void logAllApps() {
       try {
-         appMBean = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName);
-         listAllApps = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=*");
-      } catch (MalformedObjectNameException e) {
-         throw new DeploymentException("The generated object name is wrong. The applicationName used was '" + applicationName + "'", e);
-      } catch (NullPointerException e) {
-         // This should never happen given that the name parameter to the
-         // ObjectName constructor above can never be null
-         throw new DeploymentException("This should never happen", e);
+         log.info("Listing all apps...");
+         Set<ObjectInstance> allApps = mbsc.queryMBeans(null, null);
+         log.info("Size of results: " + allApps.size());
+         for (ObjectInstance app : allApps) {
+            log.info(app.getObjectName().toString());
+         }
+      } catch(IOException e) {
+         log.warning("Could not print list of all apps. Exception thrown is: " + e.getMessage());
+      }
+   }
+
+   private void waitForApplicationTargetState(String[] applicationNames, boolean targetState, int timeout) throws DeploymentException {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "waitForApplicationTargetState");
+      }
+      
+      Map<ObjectName, AppStatus> appMBeans = new HashMap<ObjectName, AppStatus>();
+      
+      for(String applicationName : applicationNames) {
+    	 ObjectName appMBean = null;
+         try {
+            appMBean = new ObjectName("WebSphere:service=com.ibm.websphere.application.ApplicationMBean,name=" + applicationName);
+         } catch (MalformedObjectNameException e) {
+            throw new DeploymentException("The generated object name is wrong. The applicationName used was '" + applicationName + "'", e);
+         } catch (NullPointerException e) {
+            // This should never happen given that the name parameter to the
+            // ObjectName constructor above can never be null
+            throw new DeploymentException("This should never happen", e);
+         }
+         appMBeans.put(appMBean, AppStatus.INITIAL);
       }
 
       // Loop until the application MBean has reached the target state or until the timeout
       try {
-         int timeleft = timeout * 1000;
-         while(mbsc.isRegistered(appMBean) != targetState) {
-            Thread.sleep(100);
-            if (timeleft <= 0) {
-               Set<ObjectInstance> allApps = mbsc.queryMBeans(/*listAllApps*/ null, null);
-               log.fine("Size of results: " + allApps.size());
-               for (ObjectInstance app : allApps) {
-                  log.fine(app.getObjectName().toString());
-               }
-               throw new DeploymentException("Timeout while waiting for ApplicationMBean to reach targetState");
-            }
-            timeleft -= 100;
-         }
-
-         // If the target state is true (true==STARTED)
-         // then loop until the deployed application is in started state or until the timeout
-         if (targetState == true) {
-            String applicationState = null;
-            while(applicationState == null || !applicationState.contentEquals("STARTED")) {
-               Thread.sleep(100);
-               applicationState = (String)mbsc.getAttribute(appMBean, "State");
-               if (timeleft <= 0)
-                  throw new DeploymentException("Timeout while waiting for ApplicationState to reach STARTED");
-               timeleft -= 100;
-            }
-         }
+         checkApplicationStatus(appMBeans, targetState, timeout);
       } catch (Exception e) {
-         checkForDefinitionExceptions(applicationName);
          throw new DeploymentException("Exception while checking application state.", e);
       }
 
       if (log.isLoggable(Level.FINER)) {
-         log.exiting(className, "waitForMBeanTargetState");
+         log.exiting(className, "waitForApplicationTargetState");
       }
+   }
+   
+   private void checkApplicationStatus(Map<ObjectName, AppStatus> appMBeans, boolean targetState, int timeout) throws Exception {
+      int timeleft = timeout * 1000;
+
+      // Loop until all apps are ready. If timeleft is 0, fail the deployment
+      do {
+         for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
+            ObjectName appMBean = entry.getKey();
+            AppStatus status = entry.getValue();
+            
+            // First check if apps in the INITIAL state have reached the targetState. If so, update their AppStatus.
+            if(status == AppStatus.INITIAL) {
+               if(mbsc.isRegistered(appMBean) == targetState) {
+                  status = AppStatus.MATCHES_TARGET_STATE;
+               }
+            }
+            
+            // Then check if apps in the targetState have reached the STARTED state, if the targetState == true. 
+            if(status == AppStatus.MATCHES_TARGET_STATE) {
+               if(targetState == true) {
+                  String applicationState = (String)mbsc.getAttribute(appMBean, "State");
+                  if(applicationState.contentEquals("STARTED")) {
+                     status = AppStatus.FINISHED;
+                  }
+               }
+               else {
+                  status = AppStatus.FINISHED;
+               }
+            }
+            
+            // Update the appMBeans dictionary
+            appMBeans.put(appMBean, status);
+         }
+         
+         if(allAppsReady(appMBeans)) {
+            return;
+         }
+         
+         Thread.sleep(100);
+
+         timeleft -= 100;
+      } while (timeleft > 0);
+      
+      // If we haven't returned in the while loop, not all apps were ready in the given timeout period.
+      
+      logAllApps();
+      
+      String appMessageStatus = "";
+      for(Entry<ObjectName, AppStatus> entry : appMBeans.entrySet()) {
+         // Timeout while waiting for ApplicationMBean to reach targetState
+         String appName = entry.getKey().getCanonicalName();
+         AppStatus status = entry.getValue();
+         if(status == AppStatus.INITIAL) {
+            appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationMBean to reach targetState.\n";
+         }
+         else if(status == AppStatus.MATCHES_TARGET_STATE) {
+            appMessageStatus += "Timeout while waiting for \"" + appName + "\" ApplicationState to reach STARTED.\n";
+         }
+      }
+      throw new DeploymentException(appMessageStatus);
+   }
+   
+   private boolean allAppsReady(Map<ObjectName, AppStatus> appMBeans) {
+      for(AppStatus status : appMBeans.values()) {
+         if(status != AppStatus.FINISHED) {
+            return false;
+         }
+      }
+      return true;
    }
 
    public void stop() throws LifecycleException
@@ -869,37 +993,188 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    }
 
-   private void checkForDefinitionExceptions(String applicationName)
-   {
-      String messagesFile = containerConfiguration.getWlpHome() + "/usr/servers/" + containerConfiguration.getServerName() + "/logs/messages.log";
-      BufferedReader br = null;
+   /**
+    * Fetch a liberty ENV var. The sources have the following precedence:
+    *   1 - server specific server.env
+    *   2 - system wide server.env
+    *   3 - shell environment
+    *   
+    * @param key
+    * @return ENV var value or null
+    * @throws IOException 
+    */
+	private String getLibertyEnvVar(String key) throws IOException{
+		String value = null;
+		Properties props = new Properties();
+		InputStream fisServerEnv = null;
+		InputStream fisSystemServerEnv = null;
 
+		try {
+			// Server specific
+			if (!key.equals(WLP_USER_DIR)) { // WLP_USER_DIR is not allowed to be server specific
+                try {
+			        fisServerEnv = new FileInputStream(new File(getServerEnvFilename()));
+				    props.load(fisServerEnv);
+				    value = props.getProperty(key);
+			    }catch( FileNotFoundException fnfex ) {
+				    // We ignore FileNotFound here
+			    }
+			}
+			// Liberty system wide
+			if (value == null) {
+				try {
+				   fisSystemServerEnv = new FileInputStream(new File(getSystemServerEnvFilename()));
+				   props.load(fisSystemServerEnv);
+				   value = props.getProperty(key);
+				}catch( FileNotFoundException fnfex ) {
+					// We can safely ignore FileNotFound
+				}
+				// Shell environment
+				if (value == null) {
+					value = getEnv(key);
+				}
+			}
+
+			log.fine("server.env: " + key + "=" + value);
+			return value;
+
+		} finally {
+			closeQuietly(fisServerEnv);
+			closeQuietly(fisSystemServerEnv);
+		}
+	}   
+
+  /**
+   * Enable @ShouldThrowExceptions in tests by looking for messages that indicate the cause of DeploymentExceptions 
+   *
+   * @param applicationName
+   * @throws IOException
+   * @throws DeploymentException
+   */
+   private void throwWrappedExceptionIfFoundInLog(String applicationName) throws IOException, DeploymentException
+   {
+	   BufferedReader br = null;
+	   String messagesFile = null;
+	   
       try {
-         br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFile)));
+    	     messagesFile = getLogsDirectory() + "/messages.log";
+    	     br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFile)));
          String line;
          while ((line = br.readLine()) != null) {
-            if (line.contains("CWWKZ0002E: An exception occurred while starting the application " + applicationName + ".")
-                  && (line.contains("org.jboss.weld.exceptions.DefinitionException") || line.contains("javax.enterprise.inject.spi.DefinitionException"))) {
-               System.out.println("############DEBUG found CWWKZ0002E for application: " + applicationName);
-               System.out.println(line);
-               throw new DefinitionException(line);
-            }
+            if (line.contains("CWWKZ0002") && line.contains("DefinitionException") && line.contains(applicationName)) {
+               log.finest("DefinitionException found in line" + line + " of file " + messagesFile );   
+               DefinitionException cause = new javax.enterprise.inject.spi.DefinitionException(line);
+               throw new DeploymentException( "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause );
+            } else { 
+            	   if ( line.contains("DeploymentException") && line.contains(applicationName)) {
+                  log.finest("DeploymentException found in line" + line + " of file " + messagesFile );   
+                  javax.enterprise.inject.spi.DeploymentException cause = new javax.enterprise.inject.spi.DeploymentException(line);
+                  throw new DeploymentException( "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause );
+            	   }
+            	}
          }
       } catch (IOException e) {
-         System.err.println("Exception while reading messages.log" + e.toString());
-         e.printStackTrace();
+         log.warning("Exception while reading messages.log: " + messagesFile + e.toString());
+         throw e;
       } finally {
-         try {
-            if (br != null)
+            if (br != null) {
                br.close();
-         } catch (Exception e) {
-            System.err.println("Exception while closing bufferedreader " + e.toString());
-            e.printStackTrace();
-         }
+            }
       }
    }
+
+   /**
+    * Do System.getenv under a doPrivileged
+    * @param name
+    * @return
+    */
+   private String getEnv(final String name) {
+      final String result = AccessController.doPrivileged(
+         new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+               return System.getenv(name);
+            }
+         });
+      return result;
+   }
    
+   /**
+    * Get wlp/usr taking account of user preferences
+    * @return wlp.user.dir
+    * @throws IOException
+    */
+   private String getWlpUsrDir() throws IOException {
+      String usrDir = getLibertyEnvVar(WLP_USER_DIR);
+	  if(usrDir==null) {
+         usrDir= containerConfiguration.getWlpHome() + "/usr/";
+	  }
+      log.finer("wlp.usr.dir: " + usrDir);
+      return usrDir;
+   }
    
+   /**
+    * Get server output dir (usually <serverName> but taking account of user preferences)
+    * @return server.output.dir
+    * @throws IOException
+    */
+   private String getServerOutputDir() throws IOException {	   
+      String serverOutputDir = getLibertyEnvVar(WLP_OUTPUT_DIR);
+      if(serverOutputDir==null) {
+         serverOutputDir=getServerConfigDir(); //Output dir defaults to Config dir
+	  }
+	  log.finer("server.config.dir: " + serverOutputDir);
+	  return serverOutputDir;
+   }
+
+   /**
+    * Get server config dir (where server.xml etc. usually are)
+    * @return server.config.dir
+    * @throws IOException
+    */
+   private String getServerConfigDir() throws IOException {	   
+	   String serverConfigDir = getWlpUsrDir() + "servers/" + containerConfiguration.getServerName();
+	   log.finer("server.config.dir: " + serverConfigDir);
+	   return serverConfigDir;
+   }
+
+  /**
+   * Get logs dir taking account of user preferences
+   * @return server.output.dir/logs
+   * @throws IOException
+   */
+   private String getLogsDirectory() throws IOException
+   {
+      String logDir = getServerOutputDir() + "/logs";
+      log.finer("logs: " + logDir);
+      return logDir;
+   }
+
+  /**
+   * Get location of the server.env file
+   *
+   * @return server.output.dir/logs
+   * @throws IOException
+   */
+   private String getServerEnvFilename() throws IOException
+   {
+      String serverEnv = getServerConfigDir() + "/server.env";
+      log.finer("server.env: " + serverEnv);
+      return serverEnv;
+   }
+
+   /**
+    * Users can create system wide environment variables
+    * 
+    * @return ${wlp.install.dir}/etc/server.env
+    */
+   private String getSystemServerEnvFilename()
+   {
+      String systemServerEnv = containerConfiguration.getWlpHome() + "/etc/server.env";
+      log.finer("system wide server.env path: " + systemServerEnv);
+      return systemServerEnv;
+   }
+
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
     * Implementation from wildfly's ManagedDeployableContainer.java
