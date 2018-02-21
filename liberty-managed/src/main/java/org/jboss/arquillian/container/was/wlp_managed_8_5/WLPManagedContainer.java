@@ -1110,7 +1110,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 	  if(usrDir==null) {
          usrDir= containerConfiguration.getWlpHome() + "/usr/";
 	  }
-      log.finer("wlp.usr.dir: " + usrDir);
+      log.finer("wlp.usr.dir path: " + usrDir);
       return usrDir;
    }
    
@@ -1124,7 +1124,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       if(serverOutputDir==null) {
          serverOutputDir=getServerConfigDir(); //Output dir defaults to Config dir
 	  }
-	  log.finer("server.config.dir: " + serverOutputDir);
+	  log.finer("server.config.dir path: " + serverOutputDir);
 	  return serverOutputDir;
    }
 
@@ -1135,7 +1135,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
     */
    private String getServerConfigDir() throws IOException {	   
 	   String serverConfigDir = getWlpUsrDir() + "servers/" + containerConfiguration.getServerName();
-	   log.finer("server.config.dir: " + serverConfigDir);
+	   log.finer("server.config.dir path: " + serverConfigDir);
 	   return serverConfigDir;
    }
 
@@ -1147,7 +1147,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    private String getLogsDirectory() throws IOException
    {
       String logDir = getServerOutputDir() + "/logs";
-      log.finer("logs: " + logDir);
+      log.finer("logs path: " + logDir);
       return logDir;
    }
 
@@ -1160,7 +1160,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    private String getServerEnvFilename() throws IOException
    {
       String serverEnv = getServerConfigDir() + "/server.env";
-      log.finer("server.env: " + serverEnv);
+      log.finer("server.env path: " + serverEnv);
       return serverEnv;
    }
 
