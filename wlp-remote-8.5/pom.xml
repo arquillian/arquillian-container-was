@@ -1,0 +1,25 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.jboss.arquillian.container</groupId>
+		<artifactId>arquillian-parent-was</artifactId>
+		<version>1.0.0.Final-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+	<artifactId>arquillian-wlp-remote-8.5</artifactId>
+
+	<!-- Artifact Configuration -->
+	<name>Arquillian Container WebSphere Liberty Profile Remote 8.5</name>
+	<description>WebSphere Liberty Profile 8.5 Remote Container integration for the Arquillian Project</description>
+
+	<!-- Maven Relocation -->
+	<distributionManagement>
+		<relocation>
+      <groupId>org.apache</groupId>
+      <artifactId>liberty-remote</artifactId>
+      <version>1.0.0.Final-SNAPSHOT</version>
+      <message>We have moved this container integration to the OpenLiberty project</message>
+    </relocation>
+	</distributionManagement>
+
+</project>
