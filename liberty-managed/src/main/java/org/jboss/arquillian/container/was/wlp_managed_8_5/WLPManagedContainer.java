@@ -573,6 +573,71 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    }
 
    @Override
+   public void undeployUpstream(final Archive<?> archive) throws DeploymentException
+   {
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "undeploy");
+      }
+
+      String archiveName = archive.getName();
+      String deployName = createDeploymentName(archiveName);
+
+      try {
+         // If deploy type is xml, then remove the application from the xml file, which causes undeploy
+         if (containerConfiguration.isDeployTypeXML()) {
+            // Read the server.xml file into Memory
+            Document document = readServerXML();
+
+            // Remove the archive from the server.xml file
+            removeApplication(document);
+
+            // Update server.xml on file system
+            writeServerXML(document);
+
+            // Wait until the application is undeployed
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
+
+            // Remove archive from the apps directory
+            String appDir = getAppDirectory();
+            File exportedArchiveLocation = new File(appDir, archiveName);
+            if (!containerConfiguration.isFailSafeUndeployment()) {
+            	try {
+            		if(!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
+            			throw new DeploymentException("Archive already deleted from apps directory");
+            		}
+            	} catch (IOException e) {
+            		throw new DeploymentException("Unable to delete archive from apps directory", e);
+            	}
+            } else {
+            	try {
+            		Files.deleteIfExists(exportedArchiveLocation.toPath());
+            	} catch (IOException e) {
+            		log.log(Level.WARNING, "Unable to delete archive from apps directory -> failsafe -> file marked for delete on exit", e);
+            		exportedArchiveLocation.deleteOnExit();
+            	}
+            }
+         }
+         else {
+            // Remove archive from the dropIn directory, which causes undeploy
+            String dropInDir = getDropInDirectory();
+            File exportedArchiveLocation = new File(dropInDir, archiveName);
+            if (!exportedArchiveLocation.delete())
+               throw new DeploymentException("Unable to delete archive from dropIn directory");
+
+            // Wait until the application is undeployed
+            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
+         }
+
+      } catch (Exception e) {
+          throw new DeploymentException("Exception while undeploying application.", e);
+      }
+
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "undeploy");
+      }
+   }
+
+   @Override
    public void undeploy(final Archive<?> archive) throws DeploymentException
    {
       if (log.isLoggable(Level.FINER)) {
@@ -1012,7 +1077,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
 		try {
 			// Server specific
-			if (!key.equals(WLP_USER_DIR)) { // WLP_USER_DIR is not allowed to be server specific
+			if (!key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only in the ${wlp.install.dir}/etc/server.env file 
                 try {
 			        fisServerEnv = new FileInputStream(new File(getServerEnvFilename()));
 				    props.load(fisServerEnv);
@@ -1031,7 +1096,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 					// We can safely ignore FileNotFound
 				}
 				// Shell environment
-				if (value == null) {
+				if (value == null && !key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only in the ${wlp.install.dir}/etc/server.env file 
 					value = getEnv(key);
 				}
 			}
