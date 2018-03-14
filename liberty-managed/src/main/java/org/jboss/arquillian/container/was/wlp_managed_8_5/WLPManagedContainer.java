@@ -20,6 +20,7 @@ import static java.util.logging.Level.FINER;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,7 +51,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.jboss.arquillian.container.spi.client.container.DeployableContainer;
@@ -94,10 +97,21 @@ import javax.enterprise.inject.spi.DefinitionException;
 public class WLPManagedContainer implements DeployableContainer<WLPManagedContainerConfiguration>
 {
 
-   // Environment variables that Liberty takes account of for messages.log location 
+   // Environment variables that Liberty takes account of for messages.log location: 
+   // The precedence of the variables below can be thought of as building up from the bottom .
+   // Strings that are "UPPER_CASE" are environment variables and Strings that are "camelCase"
+   // can be set as properties. For properties, bootstrap.properties is read and used earlier
+   // in the Liberty start process but once the server.xml <logging> element is read, 
+   // any equivalent value from there takes precedence.
+   //
+   private static final String DEFAULT_MESSAGES_LOG_NAME = "messages.log";
+   private static final String MESSAGE_FILE_NAME = "messageFileName";
+   private static final String LOG_DIRECTORY = "logDirectory";
+   private static final String LOG_DIR = "LOG_DIR";
    private static final String WLP_OUTPUT_DIR = "WLP_OUTPUT_DIR";
    private static final String WLP_USER_DIR = "WLP_USER_DIR";
 
+   
    private static final String className = WLPManagedContainer.class.getName();
 
    private static Logger log = Logger.getLogger(className);
@@ -401,6 +415,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
              waitForApplicationTargetState(new String[] {deployName}, true, containerConfiguration.getAppDeployTimeout());
 
          }catch( DeploymentException dex) {
+            log.warning( "Deployment exception seen: " + dex.getClass() + " " + dex.getMessage() );
             try {
                throwWrappedExceptionIfFoundInLog(deployName);
             } catch (IOException ioe) { // Don't catch DeploymentExceptions
@@ -420,9 +435,9 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
         	 contextRoots.add(deployName);
          }
          // register ArquillianServletRunner
-    	 for(String contextRoot : contextRoots) {
-    		 httpContext.add(new Servlet("ArquillianServletRunner", contextRoot));
-    	 }
+    	   for(String contextRoot : contextRoots) {
+    		   httpContext.add(new Servlet("ArquillianServletRunner", contextRoot));
+    	   }
          metaData.addContext(httpContext);
 
          if (log.isLoggable(Level.FINER)) {
@@ -430,7 +445,12 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          }
 
          return metaData;
-      } catch (Exception e) {
+      } catch ( DeploymentException de ) {
+         // Keep any more specific raised DeploymentExceptions
+         throw de;
+      }
+      catch (Exception e) {
+         // Wrap generic exceptions as DeploymentExceptions
          throw new DeploymentException("Exception while deploying application.", e);
       }
    }
@@ -570,71 +590,6 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          log.exiting(className, "getHttpPortFromChannelFWMBean", httpPort);
       }
       return httpPort;
-   }
-
-   @Override
-   public void undeployUpstream(final Archive<?> archive) throws DeploymentException
-   {
-      if (log.isLoggable(Level.FINER)) {
-         log.entering(className, "undeploy");
-      }
-
-      String archiveName = archive.getName();
-      String deployName = createDeploymentName(archiveName);
-
-      try {
-         // If deploy type is xml, then remove the application from the xml file, which causes undeploy
-         if (containerConfiguration.isDeployTypeXML()) {
-            // Read the server.xml file into Memory
-            Document document = readServerXML();
-
-            // Remove the archive from the server.xml file
-            removeApplication(document);
-
-            // Update server.xml on file system
-            writeServerXML(document);
-
-            // Wait until the application is undeployed
-            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
-
-            // Remove archive from the apps directory
-            String appDir = getAppDirectory();
-            File exportedArchiveLocation = new File(appDir, archiveName);
-            if (!containerConfiguration.isFailSafeUndeployment()) {
-            	try {
-            		if(!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
-            			throw new DeploymentException("Archive already deleted from apps directory");
-            		}
-            	} catch (IOException e) {
-            		throw new DeploymentException("Unable to delete archive from apps directory", e);
-            	}
-            } else {
-            	try {
-            		Files.deleteIfExists(exportedArchiveLocation.toPath());
-            	} catch (IOException e) {
-            		log.log(Level.WARNING, "Unable to delete archive from apps directory -> failsafe -> file marked for delete on exit", e);
-            		exportedArchiveLocation.deleteOnExit();
-            	}
-            }
-         }
-         else {
-            // Remove archive from the dropIn directory, which causes undeploy
-            String dropInDir = getDropInDirectory();
-            File exportedArchiveLocation = new File(dropInDir, archiveName);
-            if (!exportedArchiveLocation.delete())
-               throw new DeploymentException("Unable to delete archive from dropIn directory");
-
-            // Wait until the application is undeployed
-            waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
-         }
-
-      } catch (Exception e) {
-          throw new DeploymentException("Exception while undeploying application.", e);
-      }
-
-      if (log.isLoggable(Level.FINER)) {
-         log.exiting(className, "undeploy");
-      }
    }
 
    @Override
@@ -1060,93 +1015,112 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    }
 
    /**
-    * Fetch a liberty ENV var. The sources have the following precedence:
-    *   1 - server specific server.env
-    *   2 - system wide server.env
-    *   3 - shell environment
-    *   
+    * Fetch a liberty ENV var. The sources have the following precedence: 1 -
+    * server specific server.env 2 - system wide server.env 3 - shell environment
+    * 
     * @param key
     * @return ENV var value or null
-    * @throws IOException 
+    * @throws IOException
     */
-	private String getLibertyEnvVar(String key) throws IOException{
-		String value = null;
-		Properties props = new Properties();
-		InputStream fisServerEnv = null;
-		InputStream fisSystemServerEnv = null;
+   private String getLibertyEnvVar(String key) throws IOException {
+      String value = null;
+      Properties props = new Properties();
+      InputStream fisServerEnv = null;
+      InputStream fisSystemServerEnv = null;
 
-		try {
-			// Server specific
-			if (!key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only in the ${wlp.install.dir}/etc/server.env file 
-                try {
-			        fisServerEnv = new FileInputStream(new File(getServerEnvFilename()));
-				    props.load(fisServerEnv);
-				    value = props.getProperty(key);
-			    }catch( FileNotFoundException fnfex ) {
-				    // We ignore FileNotFound here
-			    }
-			}
-			// Liberty system wide
-			if (value == null) {
-				try {
-				   fisSystemServerEnv = new FileInputStream(new File(getSystemServerEnvFilename()));
-				   props.load(fisSystemServerEnv);
-				   value = props.getProperty(key);
-				}catch( FileNotFoundException fnfex ) {
-					// We can safely ignore FileNotFound
-				}
-				// Shell environment
-				if (value == null && !key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only in the ${wlp.install.dir}/etc/server.env file 
-					value = getEnv(key);
-				}
-			}
-
-			log.fine("server.env: " + key + "=" + value);
-			return value;
-
-		} finally {
-			closeQuietly(fisServerEnv);
-			closeQuietly(fisSystemServerEnv);
-		}
-	}   
-
-  /**
-   * Enable @ShouldThrowExceptions in tests by looking for messages that indicate the cause of DeploymentExceptions 
-   *
-   * @param applicationName
-   * @throws IOException
-   * @throws DeploymentException
-   */
-   private void throwWrappedExceptionIfFoundInLog(String applicationName) throws IOException, DeploymentException
-   {
-	   BufferedReader br = null;
-	   String messagesFile = null;
-	   
       try {
-    	     messagesFile = getLogsDirectory() + "/messages.log";
-    	     br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFile)));
+         // Server specific
+         if (!key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only as a process environment variable
+                                          // or ${wlp.install.dir}/etc/server.env file
+            try {
+               fisServerEnv = new FileInputStream(new File(getServerEnvFilename()));
+               props.load(fisServerEnv);
+               value = props.getProperty(key);
+            } catch (FileNotFoundException fnfex) {
+               // We ignore FileNotFound here
+            }
+         }
+         // Liberty system wide
+         if (value == null) {
+            try {
+               fisSystemServerEnv = new FileInputStream(new File(getSystemServerEnvFilename()));
+               props.load(fisSystemServerEnv);
+               value = props.getProperty(key);
+            } catch (FileNotFoundException fnfex) {
+               // We can safely ignore FileNotFound
+            }
+            // Process environment variables
+            if (value == null && !key.equals(WLP_USER_DIR)) { // WLP_USER_DIR can be specified only in the
+                                                              // ${wlp.install.dir}/etc/server.env file
+               value = getEnv(key);
+            }
+         }
+
+         log.fine("server.env: " + key + "=" + value);
+         return value;
+
+      } finally {
+         closeQuietly(fisServerEnv);
+         closeQuietly(fisSystemServerEnv);
+      }
+   }
+
+   /**
+    * Enable @ShouldThrowExceptions in tests by looking for messages that indicate
+    * the cause of DeploymentExceptions
+    *
+    * @param applicationName
+    * @throws IOException
+    * @throws DeploymentException
+    */
+   private void throwWrappedExceptionIfFoundInLog(String applicationName) throws IOException, DeploymentException {
+      BufferedReader br = null;
+      String messagesFilePath = null;
+
+      if (log.isLoggable(Level.FINER)) {
+         log.entering(className, "throwWrappedExceptionIfFoundInLog");
+      }
+
+      
+      try {
+         messagesFilePath = getMessageFilePath();
+         log.finest("Scanning message file " + messagesFilePath);
+         
+         
+         br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFilePath)));
          String line;
          while ((line = br.readLine()) != null) {
             if (line.contains("CWWKZ0002") && line.contains("DefinitionException") && line.contains(applicationName)) {
-               log.finest("DefinitionException found in line" + line + " of file " + messagesFile );   
+               log.finest("DefinitionException found in line" + line + " of file " + messagesFilePath);
                DefinitionException cause = new javax.enterprise.inject.spi.DefinitionException(line);
-               throw new DeploymentException( "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause );
-            } else { 
-            	   if ( line.contains("DeploymentException") && line.contains(applicationName)) {
-                  log.finest("DeploymentException found in line" + line + " of file " + messagesFile );   
-                  javax.enterprise.inject.spi.DeploymentException cause = new javax.enterprise.inject.spi.DeploymentException(line);
-                  throw new DeploymentException( "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause );
-            	   }
-            	}
+               throw new DeploymentException(
+                     "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause);
+            } else {
+               if (line.contains("DeploymentException") && line.contains(applicationName)) {
+                  log.finest("DeploymentException found in line" + line + " of file " + messagesFilePath);
+                  javax.enterprise.inject.spi.DeploymentException cause = new javax.enterprise.inject.spi.DeploymentException(
+                        line);
+                  ///GDH HACK
+                  throw new /* DeploymentException( */ javax.enterprise.inject.spi.DeploymentException(
+                        "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause);
+               }
+            }
          }
       } catch (IOException e) {
-         log.warning("Exception while reading messages.log: " + messagesFile + e.toString());
+         log.warning("Exception while reading messages.log: " + messagesFilePath + e.toString());
          throw e;
+      } catch (XPathExpressionException e) {
+        log.warning(e.getMessage());
       } finally {
-            if (br != null) {
-               br.close();
-            }
+         if (br != null) {
+            br.close();
+         }
       }
+
+      if (log.isLoggable(Level.FINER)) {
+         log.exiting(className, "throwWrappedExceptionIfFoundInLog");
+      }
+
    }
 
    /**
@@ -1167,30 +1141,35 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    
    /**
     * Get wlp/usr taking account of user preferences
+    * 
     * @return wlp.user.dir
     * @throws IOException
     */
    private String getWlpUsrDir() throws IOException {
       String usrDir = getLibertyEnvVar(WLP_USER_DIR);
-	  if(usrDir==null) {
-         usrDir= containerConfiguration.getWlpHome() + "/usr/";
-	  }
+      if (usrDir == null) {
+         usrDir = containerConfiguration.getWlpHome() + "/usr/";
+      }
       log.finer("wlp.usr.dir path: " + usrDir);
       return usrDir;
    }
    
    /**
-    * Get server output dir (usually <serverName> but taking account of user preferences)
+    * Get server output dir taking account of user preferences
+    * 
     * @return server.output.dir
     * @throws IOException
     */
-   private String getServerOutputDir() throws IOException {	   
-      String serverOutputDir = getLibertyEnvVar(WLP_OUTPUT_DIR);
-      if(serverOutputDir==null) {
-         serverOutputDir=getServerConfigDir(); //Output dir defaults to Config dir
-	  }
-	  log.finer("server.config.dir path: " + serverOutputDir);
-	  return serverOutputDir;
+   private String getServerOutputDir() throws IOException {
+      String serverOutputDir = null;
+      String wlpOutputDir = getLibertyEnvVar(WLP_OUTPUT_DIR);
+      if (wlpOutputDir == null) {
+         serverOutputDir = getServerConfigDir(); // Output dir defaults to Config dir
+      } else {
+         serverOutputDir = wlpOutputDir + "/" + containerConfiguration.getServerName();
+      }
+      log.finer("server output dir path: " + serverOutputDir);
+      return serverOutputDir;
    }
 
    /**
@@ -1204,19 +1183,78 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 	   return serverConfigDir;
    }
 
-  /**
-   * Get logs dir taking account of user preferences
-   * @return server.output.dir/logs
-   * @throws IOException
-   */
-   private String getLogsDirectory() throws IOException
-   {
-      String logDir = getServerOutputDir() + "/logs";
-      log.finer("logs path: " + logDir);
+   /**
+    * Get logs directory taking account of user preferences
+    * 
+    * @return server.output.dir/logs
+    * @throws IOException
+    */
+   private String getLogsDirectory() throws IOException {
+      String logDir = null;
+
+      // 1 - from server.xml/server/logging/@logDirectory
+      try {
+         logDir = getServerXmlLoggingAttribute(LOG_DIRECTORY);
+         log.finest("logDir getServerXmlLoggingAttribute: " + logDir);
+      } catch (XPathExpressionException e) {
+         // let logDir stay null
+         log.warning(e.getMessage());
+      } catch (DeploymentException e) {
+         // let logDir stay null
+         log.warning(e.getMessage());
+      }
+
+      // 2 - Environment variable ${LOG_DIR}
+      if (logDir == null || logDir.length()==0) {
+         logDir = getLibertyEnvVar(LOG_DIR);
+         log.finest("logDir getLibertyEnvVar: " + logDir);
+      }
+
+      // 3 - Default location e.g. "wlp/usr/<serverName>/logs"
+      if (logDir == null || logDir.length()==0) {
+            logDir = getServerOutputDir() + "/logs";
+            log.finest("logDir getServerOutputDir: " + logDir);
+      }
+
+      log.finest("getLogsDirectory result: " + logDir);
       return logDir;
    }
 
-  /**
+   /**
+    * Get a logging related attribute out of the server.xml
+    * 
+    * @param attr
+    * @return
+    * @throws XPathExpressionException
+    * @throws DeploymentException
+    */
+   private String getServerXmlLoggingAttribute(String attr) throws XPathExpressionException, DeploymentException{
+      String loggingElementXpath = "/server/logging";
+      String resultString = "";
+      try {
+         Document serverXml = readServerXML();
+         XPathFactory xPathFactory = XPathFactory.newInstance();
+         XPath xpath = xPathFactory.newXPath();
+         Element loggingElement = null;
+         loggingElement = (Element) xpath.evaluate(loggingElementXpath, serverXml, XPathConstants.NODE);
+         if( loggingElement != null ) {
+            resultString = loggingElement.getAttribute(attr);
+         }
+      } catch (XPathExpressionException e) {
+         e.printStackTrace();
+         log.finer("problem with expression: " + loggingElementXpath + " " + e.getMessage());
+         throw e;
+      } catch (DeploymentException e) {
+         e.printStackTrace();
+         log.finer("unreadable server.xml"  + e.getMessage());
+         throw e;
+      }
+      
+      log.finer("getServerXmlLoggingAttribute("  + attr + ")=" + resultString);
+      return resultString;
+   }
+
+/**
    * Get location of the server.env file
    *
    * @return server.output.dir/logs
@@ -1240,6 +1278,33 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       log.finer("system wide server.env path: " + systemServerEnv);
       return systemServerEnv;
    }
+   
+   /**
+    * Get the path of the messages.log file
+    * 
+    * @return
+    * @throws XPathExpressionException
+    * @throws DeploymentException
+    * @throws IOException
+    */
+   private String getMessageFilePath() throws XPathExpressionException, DeploymentException, IOException {
+      String messagesFilePath;
+      String msgFileName = getServerXmlLoggingAttribute(MESSAGE_FILE_NAME);
+      if( msgFileName==null || msgFileName.length()==0) {
+         msgFileName = DEFAULT_MESSAGES_LOG_NAME;
+      }
+      messagesFilePath = getLogsDirectory() + "/" + msgFileName;
+      log.finer("using message.log file path: " + messagesFilePath);
+      
+      java.io.PrintStream screen = new java.io.PrintStream(new java.io.FileOutputStream(FileDescriptor.out));
+      screen.println("GDH messages.log being used: " + messagesFilePath );      
+      screen.close();
+      
+      System.out.println("GDH messages.log being used: " + messagesFilePath );
+      
+      return messagesFilePath;
+   }
+
 
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
