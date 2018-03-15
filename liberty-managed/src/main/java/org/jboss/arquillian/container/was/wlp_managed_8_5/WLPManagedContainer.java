@@ -415,6 +415,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
              waitForApplicationTargetState(new String[] {deployName}, true, containerConfiguration.getAppDeployTimeout());
 
          }catch( DeploymentException dex) {
+            // We will throw an exception below but lets log this one as we may create another with a different cause below 
             log.warning( "Deployment exception seen: " + dex.getClass() + " " + dex.getMessage() );
             try {
                throwWrappedExceptionIfFoundInLog(deployName);
@@ -1100,8 +1101,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                   log.finest("DeploymentException found in line" + line + " of file " + messagesFilePath);
                   javax.enterprise.inject.spi.DeploymentException cause = new javax.enterprise.inject.spi.DeploymentException(
                         line);
-                  ///GDH HACK
-                  throw new /* DeploymentException( */ javax.enterprise.inject.spi.DeploymentException(
+                  throw new DeploymentException(
                         "Failed to deploy " + applicationName + " on " + containerConfiguration.getServerName(), cause);
                }
             }
