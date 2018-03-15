@@ -20,7 +20,6 @@ import static java.util.logging.Level.FINER;
 
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -725,7 +724,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 		   input = new FileInputStream(new File(serverXML));
 		   return readXML(input);
 	   } catch (Exception e) {
-		   throw new DeploymentException("Exception while reading server.xml file.", e);
+		   throw new DeploymentException("Exception while reading server.xml file. ", e);
 	   } finally {
 	       closeQuietly(input);
 	   }
@@ -1049,8 +1048,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
                // We ignore FileNotFound here
             }
          }
-         // Liberty system wide
-         if (value == null) {
+         // Liberty system wide not used for things that would collide across >1 server like LOG_DIR
+         if (value == null && !key.equals(LOG_DIR)) {
             try {
                fisSystemServerEnv = new FileInputStream(new File(getSystemServerEnvFilename()));
                props.load(fisSystemServerEnv);
@@ -1115,14 +1114,12 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             }
          }
       } catch (IOException e) {
-         log.warning("Exception while reading messages.log: " + messagesFilePath + e.toString());
+         log.warning("Exception while reading messages.log: " + messagesFilePath + ": " + e.toString());
          throw e;
       } catch (XPathExpressionException e) {
         log.warning(e.getMessage());
       } finally {
-         if (br != null) {
-            br.close();
-         }
+         closeQuietly(br);
       }
 
       if (log.isLoggable(Level.FINER)) {
@@ -1317,12 +1314,6 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       messagesFilePath = getLogsDirectory() + "/" + msgFileName;
       log.finer("using message.log file path: " + messagesFilePath);
       
-      java.io.PrintStream screen = new java.io.PrintStream(new java.io.FileOutputStream(FileDescriptor.out));
-      screen.println("GDH messages.log being used: " + messagesFilePath );      
-      screen.close();
-      
-      System.out.println("GDH messages.log being used: " + messagesFilePath );
-      
       return messagesFilePath;
    }
 
@@ -1332,20 +1323,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
     */
    private String getBootstrapProperty(String key) {
       Properties props = new Properties();
-      FileInputStream fis = null;
+      FileInputStream fisBootstrapProperties = null;
       try {
-         fis = new FileInputStream(getBootstrapPropertiesPath());
-         props.load(fis);
+         fisBootstrapProperties = new FileInputStream(getBootstrapPropertiesPath());
+         props.load(fisBootstrapProperties);
       } catch (IOException ex) {
          log.finest(ex.getMessage());
       } finally {
-         if (fis != null) {
-            try {
-               fis.close();
-            } catch (IOException e) {
-               log.finest(e.getMessage());
-            }
-         }
+         closeQuietly(fisBootstrapProperties);
       }
       String value=props.getProperty(key);
       log.finest("bootstrap.properties:" + key + "=" + value);
@@ -1353,6 +1338,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    }
 
    /**
+    * Get the FilePath of the bootstrap.properties file
     * @param messageFileProperty
     * @return
     */
