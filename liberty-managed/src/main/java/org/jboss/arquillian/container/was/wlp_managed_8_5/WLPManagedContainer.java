@@ -94,6 +94,10 @@ import javax.enterprise.inject.spi.DefinitionException;
  * @author <a href="mailto:gerhard.poul@gmail.com">Gerhard Poul</a>
  * @version $Revision: $
  */
+/**
+ * @author hutchig
+ *
+ */
 public class WLPManagedContainer implements DeployableContainer<WLPManagedContainerConfiguration>
 {
 
@@ -106,7 +110,11 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    //
    private static final String DEFAULT_MESSAGES_LOG_NAME = "messages.log";
    private static final String MESSAGE_FILE_NAME = "messageFileName";
+   private static final String MESSAGE_FILE_PROPERTY = "com.ibm.ws.logging.message.file.name";
+   
    private static final String LOG_DIRECTORY = "logDirectory";
+   private static final String LOG_DIRECTORY_PROPERTY = "com.ibm.ws.logging.log.directory";
+
    private static final String LOG_DIR = "LOG_DIR";
    private static final String WLP_OUTPUT_DIR = "WLP_OUTPUT_DIR";
    private static final String WLP_USER_DIR = "WLP_USER_DIR";
@@ -1196,21 +1204,26 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       try {
          logDir = getServerXmlLoggingAttribute(LOG_DIRECTORY);
          log.finest("logDir getServerXmlLoggingAttribute: " + logDir);
-      } catch (XPathExpressionException e) {
-         // let logDir stay null
-         log.warning(e.getMessage());
       } catch (DeploymentException e) {
          // let logDir stay null
          log.warning(e.getMessage());
+      } catch (XPathExpressionException e) {
+         log.warning(e.getMessage());
       }
 
-      // 2 - Environment variable ${LOG_DIR}
+      // 2 - bootstrap.properties: com.ibm.ws.logging.log.directory
+      if(logDir==null || logDir.length()==0) {
+         logDir = getBootstrapProperty(LOG_DIRECTORY_PROPERTY);
+         log.finest("logDir getBootstrapProperty(LOG_DIRECTORY_PROPERTY): " + logDir);
+      }
+
+      // 3 - Environment variable ${LOG_DIR}
       if (logDir == null || logDir.length()==0) {
          logDir = getLibertyEnvVar(LOG_DIR);
          log.finest("logDir getLibertyEnvVar: " + logDir);
       }
 
-      // 3 - Default location e.g. "wlp/usr/<serverName>/logs"
+      // 4 - Default location e.g. "wlp/usr/<serverName>/logs"
       if (logDir == null || logDir.length()==0) {
             logDir = getServerOutputDir() + "/logs";
             log.finest("logDir getServerOutputDir: " + logDir);
@@ -1237,8 +1250,10 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          XPath xpath = xPathFactory.newXPath();
          Element loggingElement = null;
          loggingElement = (Element) xpath.evaluate(loggingElementXpath, serverXml, XPathConstants.NODE);
-         if( loggingElement != null ) {
+         if( loggingElement != null && loggingElement.hasAttribute(attr) ) {
             resultString = loggingElement.getAttribute(attr);
+         }else {
+            log.finest("logging element is null for " + loggingElementXpath + "/@" + attr ); 
          }
       } catch (XPathExpressionException e) {
          e.printStackTrace();
@@ -1250,7 +1265,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          throw e;
       }
       
-      log.finer("getServerXmlLoggingAttribute("  + attr + ")=" + resultString);
+      log.finest("getServerXmlLoggingAttribute("  + attr + ")=" + resultString);
       return resultString;
    }
 
@@ -1289,10 +1304,16 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
     */
    private String getMessageFilePath() throws XPathExpressionException, DeploymentException, IOException {
       String messagesFilePath;
+      
+      // We assume server.xml will have been read by the time we want to do any deploys so that takes precedence
       String msgFileName = getServerXmlLoggingAttribute(MESSAGE_FILE_NAME);
-      if( msgFileName==null || msgFileName.length()==0) {
-         msgFileName = DEFAULT_MESSAGES_LOG_NAME;
+      if (msgFileName == null || msgFileName.length() == 0) {
+         msgFileName = getBootstrapProperty(MESSAGE_FILE_PROPERTY);
+         if (msgFileName == null || msgFileName.length() == 0) {
+            msgFileName = DEFAULT_MESSAGES_LOG_NAME;
+         }
       }
+
       messagesFilePath = getLogsDirectory() + "/" + msgFileName;
       log.finer("using message.log file path: " + messagesFilePath);
       
@@ -1303,6 +1324,47 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       System.out.println("GDH messages.log being used: " + messagesFilePath );
       
       return messagesFilePath;
+   }
+
+   /**
+    * Get a bootstrap.properties property
+    * @param name
+    */
+   private String getBootstrapProperty(String key) {
+      Properties props = new Properties();
+      FileInputStream fis = null;
+      try {
+         fis = new FileInputStream(getBootstrapPropertiesPath());
+         props.load(fis);
+      } catch (IOException ex) {
+         log.finest(ex.getMessage());
+      } finally {
+         if (fis != null) {
+            try {
+               fis.close();
+            } catch (IOException e) {
+               log.finest(e.getMessage());
+            }
+         }
+      }
+      String value=props.getProperty(key);
+      log.finest("bootstrap.properties:" + key + "=" + value);
+      return value;
+   }
+
+   /**
+    * @param messageFileProperty
+    * @return
+    */
+   private String getBootstrapPropertiesPath() {
+         String bootstrapProperties = null;
+         try {
+            bootstrapProperties = getServerConfigDir() + "/bootstrap.properties";
+         } catch (IOException e) {
+            log.warning(e.getMessage());
+         }
+         log.finest("bootstrap.properties: " + bootstrapProperties);
+         return bootstrapProperties;
    }
 
 
