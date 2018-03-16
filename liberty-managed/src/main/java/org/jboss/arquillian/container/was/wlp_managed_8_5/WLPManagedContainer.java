@@ -93,10 +93,6 @@ import javax.enterprise.inject.spi.DefinitionException;
  * @author <a href="mailto:gerhard.poul@gmail.com">Gerhard Poul</a>
  * @version $Revision: $
  */
-/**
- * @author hutchig
- *
- */
 public class WLPManagedContainer implements DeployableContainer<WLPManagedContainerConfiguration>
 {
 
