@@ -18,13 +18,11 @@ package org.jboss.arquillian.container.was.wlp_managed_8_5;
 
 import static java.util.logging.Level.FINER;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -69,7 +67,6 @@ import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.descriptor.api.Descriptor;
-import org.jboss.weld.exceptions.DefinitionException;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -559,6 +556,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
       String archiveName = archive.getName();
       String deployName = createDeploymentName(archiveName);
+      String deployDir = null; // will become either app or dropin dir
 
       try {
          // If deploy type is xml, then remove the application from the xml file, which causes undeploy
@@ -574,40 +572,43 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
             // Wait until the application is undeployed
             waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
+         }
 
-            // Remove archive from the apps directory
-            String appDir = getAppDirectory();
-            File exportedArchiveLocation = new File(appDir, archiveName);
-            if (!containerConfiguration.isFailSafeUndeployment()) {
-            	try {
-            		if(!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
-            			throw new DeploymentException("Archive already deleted from apps directory");
-            		}
-            	} catch (IOException e) {
-            		throw new DeploymentException("Unable to delete archive from apps directory", e);
-            	}
-            } else {
-            	try {
-            		Files.deleteIfExists(exportedArchiveLocation.toPath());
-            	} catch (IOException e) {
-            		log.log(Level.WARNING, "Unable to delete archive from apps directory -> failsafe -> file marked for delete on exit", e);
-            		exportedArchiveLocation.deleteOnExit();
-            	}
+         // Now we can proceed and delete the archive for either deploy type
+         if (containerConfiguration.isDeployTypeXML()) {
+            deployDir = getAppDirectory();
+         } else {
+            deployDir = getDropInDirectory();
+         }
+
+         // Remove the deployed archive
+         File exportedArchiveLocation = new File(deployDir, archiveName);
+         if (!containerConfiguration.isFailSafeUndeployment()) {
+            try {
+               if (!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
+                  throw new DeploymentException("Archive already deleted from deployment directory");
+               }
+            } catch (IOException e) {
+               throw new DeploymentException("Unable to delete archive from deployment directory", e);
+            }
+         } else {
+            try {
+               Files.deleteIfExists(exportedArchiveLocation.toPath());
+            } catch (IOException e) {
+               log.log(Level.WARNING, "Unable to delete archive from deployment directory -> failsafe -> file marked for delete on exit", e);
+               exportedArchiveLocation.deleteOnExit();
             }
          }
-         else {
-            // Remove archive from the dropIn directory, which causes undeploy
-            String dropInDir = getDropInDirectory();
-            File exportedArchiveLocation = new File(dropInDir, archiveName);
-            if (!exportedArchiveLocation.delete())
-               throw new DeploymentException("Unable to delete archive from dropIn directory");
 
+         // If it was the archive deletion that caused the undeploy we wait for the
+         // correct state
+         if (!containerConfiguration.isDeployTypeXML()) {
             // Wait until the application is undeployed
             waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
          }
 
       } catch (Exception e) {
-          throw new DeploymentException("Exception while undeploying application.", e);
+         throw new DeploymentException("Exception while undeploying application.", e);
       }
 
       if (log.isLoggable(Level.FINER)) {
@@ -832,7 +833,6 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       try {
          checkApplicationStatus(appMBeans, targetState, timeout);
       } catch (Exception e) {
-         checkForDefinitionExceptions(applicationName);
          throw new DeploymentException("Exception while checking application state.", e);
       }
 
@@ -971,37 +971,6 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
    }
 
-   private void checkForDefinitionExceptions(String applicationName)
-   {
-      String messagesFile = containerConfiguration.getWlpHome() + "/usr/servers/" + containerConfiguration.getServerName() + "/logs/messages.log";
-      BufferedReader br = null;
-
-      try {
-         br = new BufferedReader(new InputStreamReader(new FileInputStream(messagesFile)));
-         String line;
-         while ((line = br.readLine()) != null) {
-            if (line.contains("CWWKZ0002E: An exception occurred while starting the application " + applicationName + ".")
-                  && (line.contains("org.jboss.weld.exceptions.DefinitionException") || line.contains("javax.enterprise.inject.spi.DefinitionException"))) {
-               System.out.println("############DEBUG found CWWKZ0002E for application: " + applicationName);
-               System.out.println(line);
-               throw new DefinitionException(line);
-            }
-         }
-      } catch (IOException e) {
-         System.err.println("Exception while reading messages.log" + e.toString());
-         e.printStackTrace();
-      } finally {
-         try {
-            if (br != null)
-               br.close();
-         } catch (Exception e) {
-            System.err.println("Exception while closing bufferedreader " + e.toString());
-            e.printStackTrace();
-         }
-      }
-   }
-   
-   
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
     * Implementation from wildfly's ManagedDeployableContainer.java
