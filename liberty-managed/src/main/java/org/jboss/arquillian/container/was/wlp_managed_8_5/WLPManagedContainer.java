@@ -556,6 +556,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
       String archiveName = archive.getName();
       String deployName = createDeploymentName(archiveName);
+      String deployDir = null; // will become either app or dropin dir
 
       try {
          // If deploy type is xml, then remove the application from the xml file, which causes undeploy
@@ -571,40 +572,43 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 
             // Wait until the application is undeployed
             waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
+         }
 
-            // Remove archive from the apps directory
-            String appDir = getAppDirectory();
-            File exportedArchiveLocation = new File(appDir, archiveName);
-            if (!containerConfiguration.isFailSafeUndeployment()) {
-            	try {
-            		if(!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
-            			throw new DeploymentException("Archive already deleted from apps directory");
-            		}
-            	} catch (IOException e) {
-            		throw new DeploymentException("Unable to delete archive from apps directory", e);
-            	}
-            } else {
-            	try {
-            		Files.deleteIfExists(exportedArchiveLocation.toPath());
-            	} catch (IOException e) {
-            		log.log(Level.WARNING, "Unable to delete archive from apps directory -> failsafe -> file marked for delete on exit", e);
-            		exportedArchiveLocation.deleteOnExit();
-            	}
+         // Now we can proceed and delete the archive for either deploy type
+         if (containerConfiguration.isDeployTypeXML()) {
+            deployDir = getAppDirectory();
+         } else {
+            deployDir = getDropInDirectory();
+         }
+
+         // Remove the deployed archive
+         File exportedArchiveLocation = new File(deployDir, archiveName);
+         if (!containerConfiguration.isFailSafeUndeployment()) {
+            try {
+               if (!Files.deleteIfExists(exportedArchiveLocation.toPath())) {
+                  throw new DeploymentException("Archive already deleted from deployment directory");
+               }
+            } catch (IOException e) {
+               throw new DeploymentException("Unable to delete archive from deployment directory", e);
+            }
+         } else {
+            try {
+               Files.deleteIfExists(exportedArchiveLocation.toPath());
+            } catch (IOException e) {
+               log.log(Level.WARNING, "Unable to delete archive from deployment directory -> failsafe -> file marked for delete on exit", e);
+               exportedArchiveLocation.deleteOnExit();
             }
          }
-         else {
-            // Remove archive from the dropIn directory, which causes undeploy
-            String dropInDir = getDropInDirectory();
-            File exportedArchiveLocation = new File(dropInDir, archiveName);
-            if (!exportedArchiveLocation.delete())
-               throw new DeploymentException("Unable to delete archive from dropIn directory");
 
+         // If it was the archive deletion that caused the undeploy we wait for the
+         // correct state
+         if (!containerConfiguration.isDeployTypeXML()) {
             // Wait until the application is undeployed
             waitForApplicationTargetState(new String[] {deployName}, false, containerConfiguration.getAppUndeployTimeout());
          }
 
       } catch (Exception e) {
-          throw new DeploymentException("Exception while undeploying application.", e);
+         throw new DeploymentException("Exception while undeploying application.", e);
       }
 
       if (log.isLoggable(Level.FINER)) {
