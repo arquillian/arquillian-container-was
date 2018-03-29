@@ -724,7 +724,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
 		   input = new FileInputStream(new File(serverXML));
 		   return readXML(input);
 	   } catch (Exception e) {
-		   throw new DeploymentException("Exception while reading server.xml file. ", e);
+		   throw new DeploymentException("Exception while reading server.xml file.", e);
 	   } finally {
 	       closeQuietly(input);
 	   }
