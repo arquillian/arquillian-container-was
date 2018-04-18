@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -113,6 +114,8 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
    private static final String LOG_DIR = "LOG_DIR";
    private static final String WLP_OUTPUT_DIR = "WLP_OUTPUT_DIR";
    private static final String WLP_USER_DIR = "WLP_USER_DIR";
+   
+   private static final String ARQUILLIAN_SERVLET_NAME = "ArquillianServletRunner";
 
 
    private static final String className = WLPManagedContainer.class.getName();
@@ -432,16 +435,42 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          // Return metadata on how to contact the deployed application
          ProtocolMetaData metaData = new ProtocolMetaData();
          HTTPContext httpContext = new HTTPContext("localhost", getHttpPort());
-         List<String> contextRoots = new ArrayList<String>();
+         List<WebModule> modules;
          if (archive instanceof EnterpriseArchive) {
-        	 contextRoots = findArquillianContextRoots((EnterpriseArchive)archive, deployName);
+             modules = getWebModules((EnterpriseArchive) archive);
+         } else if (archive instanceof WebArchive) {
+             WebModule m = new WebModule();
+             m.name = deployName;
+             m.contextRoot = deployName;
+             m.archive = (WebArchive) archive;
+             modules = Collections.singletonList(m);
          } else {
-        	 contextRoots.add(deployName);
+             modules = Collections.emptyList();
          }
-         // register ArquillianServletRunner
-    	   for(String contextRoot : contextRoots) {
-    		   httpContext.add(new Servlet("ArquillianServletRunner", contextRoot));
-    	   }
+         
+         // register servlets
+         boolean addedSomeServlets = false;
+         for (WebModule module : modules) {
+             List<String> servlets = getServletNames(deployName, module);
+             for (String servlet : servlets) {
+                 httpContext.add(new Servlet(servlet, module.contextRoot));
+                 addedSomeServlets = true;
+             }
+         }
+         
+         if (!addedSomeServlets) {
+             // Urk, we found no servlets at all probably because we don't have the J2EE management mbeans
+             // Make a best guess at where servlets might be. Even if the servlet names are wrong, this at
+             // least allows basic URL injection to work.
+             if (modules.size() == 1) {
+                 // If there's only one web module, add that
+                 WebModule m = modules.get(0);
+                 httpContext.add(new Servlet(ARQUILLIAN_SERVLET_NAME, m.contextRoot));
+             } else {
+                 httpContext.add(new Servlet(ARQUILLIAN_SERVLET_NAME, deployName));
+             }
+         }
+         
          metaData.addContext(httpContext);
 
          if (log.isLoggable(Level.FINER)) {
@@ -481,31 +510,53 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       }
    }
 
-   private List<String> findArquillianContextRoots(final EnterpriseArchive ear, String deployName) throws DeploymentException {
-	   List<String> contextRoots = new ArrayList<String>();
-	   int testableWarCounter = 0;
-	   int totalWarCounter = 0;
-	   WebArchive latestWar = null;
-	   for (ArchivePath path : ear.getContent().keySet()) {
-		   if (path.get().endsWith("war")) {
-			   WebArchive war = ear.getAsType(WebArchive.class, path);
-			   totalWarCounter++;
-			   if (Testable.isArchiveToTest(war)) {
-				   contextRoots.add(getContextRoot(ear, war));
-				   testableWarCounter++;
-			   }
-			   latestWar = war;
-		   }
-	   }
-	   if(testableWarCounter == 0) {
-		   if(totalWarCounter == 1) { // fallback only one war
-			   contextRoots.add(getContextRoot(ear, latestWar));
-		   } else { // default fallback
-			   contextRoots.add(deployName);
-		   }
-	   }
-	   return contextRoots;
-	}
+   private List<WebModule> getWebModules(final EnterpriseArchive ear) throws DeploymentException {
+       List<WebModule> modules = new ArrayList<WebModule>();
+       
+       for (ArchivePath path : ear.getContent().keySet()) {
+           if (path.get().endsWith("war")) {
+               WebModule module = new WebModule();
+               module.archive = ear.getAsType(WebArchive.class, path);
+               module.name = module.archive.getName().replaceFirst("\\.war$", "");
+               module.contextRoot = getContextRoot(ear, module.archive);
+               modules.add(module);
+           }
+       }
+       return modules;
+   }
+   
+   /**
+    * Returns the short names of all servlets deployed in the module
+    * <p>
+    * Attempts to use J2EE management MBeans, falls back to just returning ArquillianServletRunner for testable archives and nothing otherwise.
+    */
+   private List<String> getServletNames(String appDeployName, WebModule webModule) throws DeploymentException {
+       try {
+           // If Java EE Management MBeans are present, query them for deployed servlets. This requires j2eeManagement-1.1 feature
+           Set<ObjectInstance> servletMbeans = mbsc.queryMBeans(new ObjectName("WebSphere:*,J2EEApplication=" + appDeployName + ",j2eeType=Servlet,WebModule="+webModule.name), null);
+           List<String> servletNames = new ArrayList<String>();
+           
+           for (ObjectInstance servletMbean : servletMbeans) {
+               String name = servletMbean.getObjectName().getKeyProperty("name");
+               
+               // Websphere uses the fully qualified servlet class as the servlet name, but arquillian just wants the simple name
+               if (name.contains(".")) {
+                   name = name.substring(name.lastIndexOf(".") + 1);
+               }
+               
+               servletNames.add(name);
+           }
+           
+           // J2EE Management MBeans aren't always available, so if we didn't find any servlets and this is a testable archive
+           // it ought to contain the arquillian test servlet, which is all that most tests need to work
+           if (servletNames.isEmpty() && Testable.isArchiveToTest(webModule.archive)) {
+               servletNames.add(ARQUILLIAN_SERVLET_NAME);
+           }
+           return servletNames;
+       } catch (Exception e) {
+           throw new DeploymentException("Error trying to retrieve servlet names", e);
+       }
+   }
 
    private String getContextRoot(EnterpriseArchive ear, WebArchive war) throws DeploymentException {
 	   org.jboss.shrinkwrap.api.Node applicationXmlNode = ear.get("META-INF/application.xml");
@@ -1353,6 +1404,14 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
          return bootstrapProperties;
    }
 
+   /**
+    * Simple class to store the metadata for a web module
+    */
+   private static class WebModule {
+       private String name;
+       private String contextRoot;
+       private WebArchive archive;
+   }
 
    /**
     * Runnable that consumes the output of the process. If nothing consumes the output the process will hang on some platforms
