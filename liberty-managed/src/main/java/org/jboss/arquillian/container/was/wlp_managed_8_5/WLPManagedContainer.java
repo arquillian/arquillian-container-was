@@ -614,7 +614,7 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
             Document document = readServerXML();
 
             // Remove the archive from the server.xml file
-            removeApplication(document);
+            removeApplication(document, deployName);
 
             // Update server.xml on file system
             writeServerXML(document);
@@ -834,13 +834,13 @@ public class WLPManagedContainer implements DeployableContainer<WLPManagedContai
       root.appendChild(createApplication(doc, deployName, archiveName, type));
    }
 
-   private void removeApplication(Document doc)
+   private void removeApplication(Document doc, String deployName)
    {
       Node server = doc.getElementsByTagName("server").item(0);
       NodeList serverlist = server.getChildNodes();
       for (int i=0; serverlist.getLength() > i; i++) {
          Node node = serverlist.item(i);
-         if (node.getNodeName().equals("application")) {
+         if (node.getNodeName().equals("application") && node.getAttributes().getNamedItem("id").getNodeValue().equals(deployName)) {
             node.getParentNode().removeChild(node);
          }
       }
