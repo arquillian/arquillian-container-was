@@ -40,6 +40,20 @@
               <goal>create-server</goal>
             </goals>
           </execution>
+          <execution>
+            <id>create-server-management</id>
+            <!-- Plugin execution only succeeds here in the correct order because
+                 execution id of the test is not 'default-test'.
+                 Because Maven. See MNG-5799 and MNG-5987 -->
+            <phase>test</phase>
+            <configuration>
+              <serverName>managementServer</serverName>
+              <configFile>src/test/resources/server-with-management.xml</configFile>
+            </configuration>
+            <goals>
+              <goal>create-server</goal>
+            </goals>
+          </execution>
         </executions>
         <configuration>
           <skip>${skipTests}</skip>
@@ -79,6 +93,9 @@
               <systemPropertyVariables>
                 <arquillian.launch>wlp-dropins-deployment</arquillian.launch>
               </systemPropertyVariables>
+              <excludes>
+                <exclude>**/needsmanagementmbeans/**</exclude>
+              </excludes>
             </configuration>
           </execution>
           <execution>
@@ -93,8 +110,26 @@
               <systemPropertyVariables>
                 <arquillian.launch>wlp-xml-deployment</arquillian.launch>
               </systemPropertyVariables>
+              <excludes>
+                <exclude>**/needsmanagementmbeans/**</exclude>
+              </excludes>
             </configuration>
           </execution>
+          <execution>
+            <id>wlp-xml-management-deployment-test</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <skip>${skipTests}</skip>
+              <reportsDirectory>${project.build.directory}/surefire-reports/wlp-xml-management-deployment-test</reportsDirectory>
+              <systemPropertyVariables>
+                <arquillian.launch>wlp-xml-management-deployment</arquillian.launch>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+          
         </executions>
       </plugin>
     </plugins>
@@ -132,6 +167,16 @@
     <dependency>
       <groupId>org.jboss.arquillian.testenricher</groupId>
       <artifactId>arquillian-testenricher-initialcontext</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+      <artifactId>shrinkwrap-descriptors-api-javaee</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+      <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <!-- Java EE Spec APIs -->
