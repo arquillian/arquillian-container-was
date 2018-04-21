@@ -70,27 +70,18 @@
     <profile>
       <id>all</id>
       <modules>
-        <module>was-remote-7</module>
+        <module>liberty-managed</module>
+        <module>liberty-remote</module>
         <module>was-embedded-8</module>
-        <module>was-remote-8</module>
         <module>was-remote-8.5</module>
         <module>was-remote-9</module>
-        <module>liberty-managed</module>
-        <module>liberty-remote</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>release</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <modules>
-        <module>liberty-managed</module>
-        <module>liberty-remote</module>
       </modules>
     </profile>
     <profile>
       <id>wercker</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <modules>
         <module>was-remote-9</module>
       </modules>
