@@ -4,19 +4,12 @@ box:
 
 build:
   steps:
-    # Tests with WebSphere Liberty Profile
-    - xenoterracide/maven:
-        goals: -DskipTests=false -P release test
-
-# Tests with WAS V9
-build-wasv9:
-  steps:
     - script:
         code: |
           . /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/setupCmdLine.sh
           /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/startServer.sh server1
     - xenoterracide/maven:
-        goals: -DskipTests=false -P wercker test
+        goals: -DskipTests=false test
     - script:
         code: |
           /opt/IBM/WebSphere/AppServer/profiles/AppSrv01/bin/stopServer.sh server1
