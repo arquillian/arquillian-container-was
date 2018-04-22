@@ -15,11 +15,11 @@
 	<!-- Maven Relocation -->
 	<distributionManagement>
 		<relocation>
-      <groupId>org.apache</groupId>
-      <artifactId>liberty-remote</artifactId>
-      <version>1.0.0.Final-SNAPSHOT</version>
-      <message>We have moved this container integration to the OpenLiberty project</message>
-    </relocation>
+			<groupId>io.openliberty.arquillian</groupId>
+			<artifactId>arquillian-liberty-remote</artifactId>
+			<version>1.0.0</version>
+			<message>We have moved this container integration to the OpenLiberty project</message>
+		</relocation>
 	</distributionManagement>
 
 </project>
