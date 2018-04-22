@@ -21,7 +21,7 @@
     <distributionManagement>
         <relocation>
             <groupId>io.openliberty.arquillian</groupId>
-            <artifactId>arquillian-parent-liberty</artifactId>
+            <artifactId>arquillian-liberty-managed</artifactId>
             <version>1.0.0</version>
             <message>We have moved this container integration to the OpenLiberty project</message>
         </relocation>

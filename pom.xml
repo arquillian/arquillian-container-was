@@ -86,5 +86,12 @@
         <module>was-remote-9</module>
       </modules>
     </profile>
+    <profile>
+      <id>pom-redirects</id>
+      <modules>
+        <module>wlp-remote-8.5</module>
+        <module>wlp-managed-8.5</module>
+      </modules>
+    </profile>
   </profiles>
 </project>
