@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <!-- Parent -->
   <parent>
     <groupId>org.jboss</groupId>
     <artifactId>jboss-parent</artifactId>
     <version>27</version>
-    <relativePath/>
+    <relativePath />
   </parent>
 
   <!-- Model Version -->
@@ -16,7 +15,7 @@
   <!-- Artifact Configuration -->
   <groupId>org.jboss.arquillian.container</groupId>
   <artifactId>arquillian-parent-was</artifactId>
-  <version>1.0.0.Final-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>pom</packaging>
   <name>Arquillian Container Parent WebSphere AS</name>
   <description>WebSphere AS Container integrations for the Arquillian Project</description>
@@ -94,4 +93,8 @@
       </modules>
     </profile>
   </profiles>
+
+  <scm>
+    <tag>1.0.0</tag>
+  </scm>
 </project>
